@@ -1,14 +1,15 @@
-QuadKen用platformIOプログラム
-VsCodeの一番下のバーにあるenv:default(QuadKen.pio)から実行ファイルを切り替え
+# QuadKen用platformIOプログラム
+- VsCodeの一番下のバーにあるenv:default(QuadKen.pio)から実行ファイルを切り替え
+- examplesの中のファイルはテストファイルなので適当に使ってOK
 
-[esp32dev(defalut)]
-実行ファイル：src/main.cpp
-メイン書き込み
+## [esp32dev(defalut)]
+- 実行ファイル：src/main.cpp
+- メイン書き込み
 
-[Eservo]
-実行ファイル：examples/servo/main.cpp
-servoテストファイル
+## [Eservo]
+- 実行ファイル：examples/servo/main.cpp
+- servoテストファイル
 
-[Ebldc]
-実行ファイル：examples/bldc/main.cpp
-bldcテストファイル
+## [Ebldc]
+- 実行ファイル：examples/bldc/main.cpp
+- bldcテストファイル
