@@ -10,8 +10,8 @@ private:
     float frequency;
     uint8_t resolution;
     uint8_t channel;
-    int min;
-    int max;
+    int zero;
+    int width;
 
     ESP32PWM * getPwm(); // get the PWM object
 	ESP32PWM pwm;
@@ -19,7 +19,7 @@ public:
     BLDCMotor();
 
     int attach(int pin);
-    void config(float pwmFreq, uint8_t pwmResolution , int _min , int _max);
+    void config(float pwmFreq, uint8_t pwmResolution , int _zero , int _width);
     void detach();
     bool attached();
 
