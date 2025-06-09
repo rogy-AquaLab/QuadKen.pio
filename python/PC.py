@@ -11,19 +11,29 @@ PORT = 5000
 async def async_input(prompt: str = "") -> str:
     return await asyncio.to_thread(input, prompt)
 
-servo_data = DataManager(b'\x01', 8, 'BBBBBBBB')
-bno_data = DataManager(b'\x02', 3, 'bbb')
+servo_data = DataManager(0x01, 8, 'BBBBBBBB')
+bno_data = DataManager(0x02, 3, 'bbb')
+config = DataManager(0xFF, 1, 'B')
 
 async def Hsend_Rasp(writer: asyncio.StreamWriter):
+    n= 0
     while True:
+        if n == 10:
+            print("10回送信")
+            await tcp.send(writer, config.data_type(), config.pack_data())
+            n = 0
+            await asyncio.sleep(1)
+            continue
+            
         await tcp.send(writer, servo_data.data_type(), servo_data.pack_data())
-        print(f"📤 送信 : {servo_data.get_data()}")
+        # print(f"📤 送信 : {servo_data.get_data()}")
         await asyncio.sleep(1)
+        n += 1
 
 async def Hreceive_Rasp(reader: asyncio.StreamReader):
     while True:
         data_type, size, data = await tcp.receive(reader)
-        print(f"📥 受信 : タイプ={data_type}, サイズ={size}バイト")
+        # print(f"📥 受信 : タイプ={data_type}, サイズ={size}バイト")
 
         if data_type == 0x00:
             img_array = np.frombuffer(data, dtype=np.uint8)

@@ -71,5 +71,5 @@ void loop() {
   Serial.println();
   pCharacteristic->setValue(send_data,3);
   pCharacteristic->notify();
-  delay(1000);
+  delay(100);
 }

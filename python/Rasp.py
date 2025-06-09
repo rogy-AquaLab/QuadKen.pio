@@ -17,19 +17,20 @@ CHAR_UUID = "abcd1234-5678-90ab-cdef-1234567890ab"
 HOST = '0.0.0.0'  # 例: '192.168.0.10'
 PORT = 5000
 
-servo_data = DataManager(b'\x01', 8, 'BBBBBBBB')
-bno_data = DataManager(b'\x02', 3, 'bbb')
+servo_data = DataManager(0x01, 8, 'BBBBBBBB')
+bno_data = DataManager(0x02, 3, 'bbb')
+config = DataManager(0xFF, 1, 'B')
 
 async def connect_ESP(device):
     client = BleakClient(device["address"])
     try:
         await client.connect()
-        print(f"✅ Connected to {device['name']}")
+        print(f"✅ 接続成功: {device['name']} ({device['address']})")
         await client.start_notify(CHAR_UUID, Hreceive_ESP(device["name"]))
 
         return client
     except Exception as e:
-        print(f"⚠️ Failed to connect to {device['name']}: {e}")
+        print(f"⚠️ 接続失敗: {device['name']} ({device['address']}) - {e}")
         return None
 
 # 通知を受け取ったときのコールバック
@@ -41,8 +42,29 @@ def Hreceive_ESP(device_name):
         print(f"📨 受信 from {device_name}: {bno_data.get_data()}")
     return handler
 
+async def Hsend_data_ESP(clients):
+    while True:
+        try:
+            if not clients:
+                print("⚠️ No ESP32 clients connected.")
+                await asyncio.sleep(2.5)
+                continue
+            # 各ESP32にデータを送信
+            for i, client in enumerate(clients):
+                if client.is_connected:
+                    await client.write_gatt_char(CHAR_UUID, servo_data.pack_data())
+                    # print(f"📤 送信 to ESP32-{i}: {servo_data.get_data()}")
+                else:
+                    print(f"⚠️ ESP32-{i} is not connected.")
+            await asyncio.sleep(0.1)  # 1秒おきに送信
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"⚠️ データ送信失敗: {e}")
+
 async def Hto_ESP():
     # ESP32との接続と受信起動
+    print("🔄 ESP32との接続を開始...")
     clients = []
     for dev in devices:
         client = await connect_ESP(dev)
@@ -51,31 +73,35 @@ async def Hto_ESP():
         await asyncio.sleep(1)
     
     
+    send_data_task = asyncio.create_task(Hsend_data_ESP(clients))
+    
     # ESP32との送信を起動
-    while True:
-        try:
-            if not clients:
-                print("⚠️ No ESP32 clients connected.")
-                await asyncio.sleep(2.5)
-                continue
-
-            for i , client in enumerate(clients):
-                # データを書き込む
-                await client.write_gatt_char(CHAR_UUID, servo_data.pack_data())
-                print(f"📤 送信 to ESP32-{i}: {servo_data.get_data()}")
-
-            await asyncio.sleep(2.5)  # 少し待つ
-
-        except Exception as e:
-            print(f"⚠️ データ送信失敗 {client.address}: {e}")
-
-        except asyncio.CancelledError:
-            break
+    try:
+        await send_data_task
+    except Exception as e:
+        print(f"⚠️ データ送信失敗 {client.address}: {e}")
+    except asyncio.CancelledError:
+        pass
+    finally:
+        send_data_task.cancel()
+        print(f"❌ 切断")
+        for client in clients:
+            if client.is_connected:
+                await client.disconnect()
+                print(f"❌ 切断: {client.address}")
 
 async def Hreceive_PC(reader: asyncio.StreamReader):
+    esp_task = None
     while True:
         try:
             data_type, size, data = await tcp.receive(reader)
+            if data_type == 0xFF:
+                config.unpack(data)
+                print(f"📨 受信 from PC: {config.get_data()}")
+                if esp_task is None or esp_task.done():
+                # ESP32との接続を開始
+                    esp_task = asyncio.create_task(Hto_ESP())
+                continue
             print(f"📨 受信 from PC: {servo_data.get_data()}")
             servo_data.unpack(data)
         except asyncio.CancelledError:
@@ -85,8 +111,8 @@ async def Hsend_data_PC(writer: asyncio.StreamWriter):
     while True:
         try:
             await tcp.send(writer, bno_data.data_type(), bno_data.pack_data())
-            print(f"📤 送信 to PC: {bno_data.get_data()}")
-            await asyncio.sleep(1)  # 0.5秒おき
+            # print(f"📤 送信 to PC: {bno_data.get_data()}")
+            await asyncio.sleep(0.05)  # 0.5秒おき
         except asyncio.CancelledError:
             pass
         except ValueError as e:
@@ -131,9 +157,9 @@ async def stream_frames(picam, writer):
             data = jpeg.tobytes()
 
             # ヘッダー形式: [1バイト: 種別 (0x01)] + [4バイト: データ長]
-            await tcp.send(writer, b'\x00', data)
+            await tcp.send(writer, 0x00, data)
 
-            await asyncio.sleep(1)  # 次のフレームまで待機
+            await asyncio.sleep(2.5)  # 次のフレームまで待機
 
         except asyncio.TimeoutError:
             print("⚠ フレーム取得タイムアウト。再試行します。")

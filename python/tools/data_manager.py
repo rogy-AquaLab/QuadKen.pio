@@ -1,13 +1,13 @@
 import struct
 
 class DataManager:
-    def __init__(self, data_type:bytes, length:int, pack_mode:str):
-        if not (isinstance(data_type, bytes) and (len(data_type) == 1)):
+    def __init__(self, data_type:int, length:int, pack_mode:str):
+        if 1 <= data_type <= 255:
             raise ValueError("1byte only")
         if len(pack_mode) != length:
             raise ValueError("Invalid pack mode. Length of pack mode must match the numbe")
 
-        self._data_type:bytes = data_type
+        self._data_type:int = data_type
         self._data = [0] * length  # uint8_t 8個のデータを格納するリスト
         self._length = length
         self._pack_mode = pack_mode
