@@ -1,4 +1,6 @@
 # PC <-> RasPi <-> 複数ESP32
+### 仮想環境
+bleak , open-cv2 (多分ちょい名前違う)
 ### PC <-> RasPi
 - asyncioってやつを使ってる。async/await使えてPORTも開けるっぽい
 - あんまり理解してないからふわふわコード
