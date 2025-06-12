@@ -3,7 +3,7 @@ import struct
 import cv2
 from picamera2 import Picamera2
 from bleak import BleakClient
-from tools import tcp
+from tools import tcp , ble
 from tools.data_manager import DataManager
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
@@ -63,19 +63,28 @@ async def Hsend_data_ESP(clients):
             print(f"⚠️ データ送信失敗: {e}")
 
 async def Hto_ESP():
-    # ESP32との接続と受信起動
-    print("🔄 ESP32との接続を開始...")
-    clients = []
-    for dev in devices:
-        client = await connect_ESP(dev)
-        if client:
-            clients.append(client)
-        await asyncio.sleep(1)
+    # ESP32との接続
+    while True:
+        try:
+            print("🔄 ESP32との接続を開始...")
+            clients = []
+            for dev in devices:
+                client = await ble.connect(dev, CHAR_UUID)
+                if client:
+                    clients.append(client)
+                await asyncio.sleep(0.2)
+            break
+        except Exception as e:
+            print(f"⚠️ ESP32接続エラー: {e}")
+            await asyncio.sleep(2.5)
     
-    
-    send_data_task = asyncio.create_task(Hsend_data_ESP(clients))
+    # ESP32との受信を作成
+    for client in clients:
+        await client.start_notify(CHAR_UUID, Hreceive_ESP(device["name"]))
     
     # ESP32との送信を起動
+    send_data_task = asyncio.create_task(Hsend_data_ESP(clients))
+
     try:
         await send_data_task
     except Exception as e:
