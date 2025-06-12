@@ -2,7 +2,7 @@ import struct
 
 class DataManager:
     def __init__(self, data_type:int, length:int, pack_mode:str):
-        if 1 <= data_type <= 255:
+        if not 1 <= data_type <= 255:
             raise ValueError("1byte only")
         if len(pack_mode) != length:
             raise ValueError("Invalid pack mode. Length of pack mode must match the numbe")
