@@ -35,21 +35,21 @@ async def Hsend_data_ESP(clients):
     while True:
         try:
             if not clients:
-                print("⚠️ No ESP32 clients connected.")
+                print("⚠️ ESP32デバイスが接続されていません。")
                 await asyncio.sleep(2.5)
-                continue
+                break
             # 各ESP32にデータを送信
             for i, client in enumerate(clients):
                 if client.is_connected:
                     await client.write_gatt_char(CHAR_UUID, servo_data.pack_data())
                     # print(f"📤 送信 to ESP32-{i}: {servo_data.get_data()}")
                 else:
-                    print(f"⚠️ ESP32-{i} is not connected.")
+                    raise Exception(f"ESP32-{i} ({client.address}) は接続されていません。")
             await asyncio.sleep(0.1)  # 1秒おきに送信
         except asyncio.CancelledError:
             break
         except Exception as e:
-            print(f"⚠️ データ送信失敗: {e}")
+            raise Exception(f"{e}")
 
 async def Hto_ESP():
     # ESP32との接続

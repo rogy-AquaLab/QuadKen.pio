@@ -23,13 +23,19 @@ async def connect(devices , CHAR_UUID , Hreceive_ESP):
 
     return clients    
 
-async def receive(data: bytes):
+async def receive(received_data: bytes):
     """
     データを受信し、データタイプとサイズを取得する  
-    :param data: 受信したデータ
+    :param received_data: 受信したデータ
     :return: データタイプ、サイズ、データ
     """
-
+    data_type_byte = received_data[0:1]
+    data_type: int = data_type_byte[0]
+    size_bytes = received_data[1:5]
+    size: int = struct.unpack('>I', size_bytes)[0]
+    data: bytes = received_data[5:5 + size]
+    if len(data) != size:
+        raise ValueError(f"受信データのサイズが不正です: {len(data)} != {size}")
     
     return data_type, size, data
 
