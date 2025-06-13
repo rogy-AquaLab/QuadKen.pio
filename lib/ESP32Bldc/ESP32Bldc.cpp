@@ -12,7 +12,7 @@ int BLDCMotor::attach(int pin)
 {
     this->pinNumber = pin;
     pwm.attachPin(this->pinNumber,this->frequency ,this->resolution);
-    int init_duty = map(100,  0, 1000000/this->frequency, 0, pow(2,resolution)-1);
+    int init_duty = map(1500,  0, 1000000/this->frequency, 0, pow(2,resolution)-1);
     pwm.write(init_duty);
 
     return pwm.getChannel();
