@@ -21,23 +21,12 @@ servo_data = DataManager(0x01, 8, 'BBBBBBBB')
 bno_data = DataManager(0x02, 3, 'bbb')
 config = DataManager(0xFF, 1, 'B')
 
-async def connect_ESP(device):
-    client = BleakClient(device["address"])
-    try:
-        await client.connect()
-        print(f"✅ 接続成功: {device['name']} ({device['address']})")
-        await client.start_notify(CHAR_UUID, Hreceive_ESP(device["name"]))
-
-        return client
-    except Exception as e:
-        print(f"⚠️ 接続失敗: {device['name']} ({device['address']}) - {e}")
-        return None
-
 # 通知を受け取ったときのコールバック
 def Hreceive_ESP(device_name):
     def handler(sender, data):
         # データを更新
         bno_data.unpack(data)
+        
         # データを表示
         print(f"📨 受信 from {device_name}: {bno_data.get_data()}")
     return handler
@@ -67,21 +56,14 @@ async def Hto_ESP():
     while True:
         try:
             print("🔄 ESP32との接続を開始...")
-            clients = []
-            for dev in devices:
-                client = await ble.connect(dev, CHAR_UUID)
-                if client:
-                    clients.append(client)
-                await asyncio.sleep(0.2)
+            clients = ble.connect(devices, CHAR_UUID, Hreceive_ESP)
             break
         except Exception as e:
             print(f"⚠️ ESP32接続エラー: {e}")
             await asyncio.sleep(2.5)
-    
-    # ESP32との受信を作成
-    for client in clients:
-        await client.start_notify(CHAR_UUID, Hreceive_ESP(device["name"]))
-    
+        
+    print("✅ ESP32との接続完了")
+
     # ESP32との送信を起動
     send_data_task = asyncio.create_task(Hsend_data_ESP(clients))
 
