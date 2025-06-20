@@ -6,6 +6,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tools import tcp
 from tools.data_manager import DataManager
+import pygame
+
+# 初期化
+pygame.init()
+pygame.joystick.init()
+joystick = pygame.joystick.Joystick(0)
+joystick.init()
+print(f"接続中のジョイスティック: {joystick.get_name()}")
+
+# ジョイスティック接続確認
+if pygame.joystick.get_count() == 0:
+    print("ジョイスティックが接続されていません。")
+    exit()
 
 HOST = 'takapi.local'
 PORT = 5000
@@ -24,11 +37,12 @@ async def Hsend_Rasp(writer: asyncio.StreamWriter):
             print("10回送信")
             await tcp.send(writer, config.data_type(), config.pack_data())
             await asyncio.sleep(1)
+            n +=1
             continue
             
         await tcp.send(writer, servo_data.data_type(), servo_data.pack_data())
         # print(f"📤 送信 : {servo_data.get_data()}")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
         n += 1
 
 async def Hreceive_Rasp(reader: asyncio.StreamReader):
@@ -68,23 +82,19 @@ async def tcp_client():
     try:
         while True:
             data8 = [0] * 8
-            for i in range(8):
-                text = await async_input(f"{i}番目の整数を入力してください（または e で終了）: ")
-                if text.lower() == "e":
-                    raise EOFError("ユーザーが入力で終了を選択")
+            pygame.event.pump()
 
-                try:
-                    num = int(text)
-                    if not 0 <= num <= 255:
-                        raise ValueError
-                except ValueError:
-                    print("⚠️ 整数ではありません。0にします。")
-                    num = 0
-                data8[i] = num
+            # スティックの値を取得（例：左スティックX/Y軸）
+            axis_x = joystick.get_axis(0)
+            print(f"スティック: X={axis_x:.2f}")
 
+            servo_angle = int((axis_x + 1) * 90)
+            data8[0] = servo_angle
+
+            
             servo_data.update_data(data8)
             print("✅ 入力完了:", data8)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
 
     except (EOFError, KeyboardInterrupt) as e:
         print(f"⛔ 終了: {e}")

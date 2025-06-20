@@ -4,9 +4,14 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <ESP32Servo.h>
+
+Servo servo; // Create a Servo object
 
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
+
+constexpr uint8_t SERVO_PIN = 13; // GPIO pin for servo control
 
 #define SERVICE_UUID        "12345678-1234-1234-1234-1234567890ab"
 #define CHARACTERISTIC_UUID "abcd1234-5678-90ab-cdef-1234567890ab"
@@ -35,6 +40,10 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
 void setup() {
   Serial.begin(115200);
+
+  servo.attach(SERVO_PIN); // Attach the servo to the specified pin
+  servo.write(90); // Set initial position to 90 degrees
+  
   BLEDevice::init("ESP32-BLE-Servo2");
 
   BLEServer *pServer = BLEDevice::createServer();
@@ -71,5 +80,9 @@ void loop() {
   Serial.println();
   pCharacteristic->setValue(send_data,3);
   pCharacteristic->notify();
+
+  servo.write(data.servo_data[0]); // Set servo position based on received data
+  Serial.print("Servo Position: ");
+  
   delay(100);
 }
