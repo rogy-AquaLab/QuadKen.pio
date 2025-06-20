@@ -1,6 +1,6 @@
 # PC <-> RasPi <-> 複数ESP32
 ### 仮想環境
-bleak , opencv-python
+bleak , opencv-python , simple_pid
 ### PC <-> RasPi
 - asyncioってやつを使ってる。async/await使えてPORTも開けるっぽい
 - あんまり理解してないからふわふわコード

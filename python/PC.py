@@ -1,6 +1,8 @@
 import asyncio
 import cv2
 import struct
+from simple_pid import PID
+import matplotlib.pyplot as plt
 import numpy as np
 from tools import tcp
 from tools.data_manager import DataManager
@@ -21,7 +23,6 @@ async def Hsend_Rasp(writer: asyncio.StreamWriter):
         if n == 10:
             print("10回送信")
             await tcp.send(writer, config.data_type(), config.pack_data())
-            n = 0
             await asyncio.sleep(1)
             continue
             
@@ -47,6 +48,13 @@ async def Hreceive_Rasp(reader: asyncio.StreamReader):
         else:
             raise ValueError(f"未知のデータタイプ: {data_type}")
 
+async def Hpid():
+    pid = PID(1, 0, 0.05, setpoint=120)
+    pid.output_limits = (0, 180)
+    pid.sample_time = 1
+    await asyncio.sleep(1)
+
+
 async def tcp_client():
     print("🔵 接続中...")
     
@@ -55,6 +63,8 @@ async def tcp_client():
 
     send_task = asyncio.create_task(Hsend_Rasp(writer))
     receive_task = asyncio.create_task(Hreceive_Rasp(reader))
+    pid_task = asyncio.create_task(Hpid())
+
     try:
         while True:
             data8 = [0] * 8
