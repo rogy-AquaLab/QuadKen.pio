@@ -3,7 +3,8 @@ import cv2
 import struct
 import numpy as np
 from tools import tcp
-from tools.data_manager import DataManager
+from tools.data_manager import DataManager , DataType
+
 
 HOST = 'takapi.local'
 PORT = 5000
@@ -11,21 +12,22 @@ PORT = 5000
 async def async_input(prompt: str = "") -> str:
     return await asyncio.to_thread(input, prompt)
 
-servo_data = DataManager(0x01, 8, 'BBBBBBBB')
-bno_data = DataManager(0x02, 3, 'bbb')
-config = DataManager(0xFF, 1, 'B')
+servo_data = DataManager(0x01, 8, DataType.UINT8)
+bno_data = DataManager(0x02, 3, DataType.INT8)
+config = DataManager(0xFF, 1, DataType.UINT8)
+
 
 async def Hsend_Rasp(writer: asyncio.StreamWriter):
     n= 0
     while True:
         if n == 10:
             print("10回送信")
-            await tcp.send(writer, config.data_type(), config.pack_data())
+            await tcp.send(writer, config.identifier(), config.pack())
             n = 0
             await asyncio.sleep(1)
             continue
             
-        await tcp.send(writer, servo_data.data_type(), servo_data.pack_data())
+        await tcp.send(writer, servo_data.identifier(), servo_data.pack())
         # print(f"📤 送信 : {servo_data.get_data()}")
         await asyncio.sleep(1)
         n += 1
@@ -41,11 +43,8 @@ async def Hreceive_Rasp(reader: asyncio.StreamReader):
             cv2.imshow('Async TCP Stream', frame)
             if cv2.waitKey(1) == ord('q'):
                 raise EOFError("ユーザーが'q'で終了")  # 明示的に終了を伝える
-        elif data_type == 0x02:
-            bno_data.unpack(data)
-            print(f"📨 受信: {bno_data.get_data()}")
-        else:
-            raise ValueError(f"未知のデータタイプ: {data_type}")
+        
+        DataManager.unpack(data_type, data)
 
 async def tcp_client():
     print("🔵 接続中...")

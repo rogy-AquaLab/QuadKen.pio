@@ -2,49 +2,49 @@ import asyncio
 import struct
 import cv2
 from picamera2 import Picamera2 # type: ignore
-from bleak import BleakClient
-from tools import tcp , ble
-from tools.data_manager import DataManager
+from bleak import Bleak
+from tools import tcp
+from tools.data_manager import DataManager , DataType
+from tools.ble import Ble
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"num": 1, "address": "08:D1:F9:36:FF:3E"},
-    # {"num": 2, "address": "AA:BB:CC:44:55:66"},
+    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890ab"},
+    # {"num": 2, "address": "AA:BB:CC:44:55:66" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
 ]
+esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
 
-CHAR_UUID = "abcd1234-5678-90ab-cdef-1234567890ab"
 
 HOST = '0.0.0.0'  # 例: '192.168.0.10'
 PORT = 5000
 
-servo_data = DataManager(0x01, 8, 'BBBBBBBB')
-bno_data = DataManager(0x02, 3, 'bbb')
-config = DataManager(0xFF, 1, 'B')
+# データ管理インスタンスの作成
+servo_data = DataManager(0x01, 8, DataType.UINT8)
+bno_data = DataManager(0x02, 3, DataType.INT8)
+config = DataManager(0xFF, 1, DataType.UINT8)
 
 # 通知を受け取ったときのコールバック
-def Hreceive_ESP(device_num):
-    def handler(sender, data):
-        # データを更新
-        bno_data.unpack(data)
-        
-        # データを表示
-        print(f"📨 受信 from ESP-{device_num}: {bno_data.get_data()}")
-    return handler
+def Hreceive_ESP(device_num , data_type, size, data):
+    # データを更新
+    received_data = DataManager.unpack(data_type, data)
+    
+    # データを表示
+    print(f"📨 受信 from ESP-{device_num}: {received_data}")
 
-async def Hsend_data_ESP(clients):
+async def Hsend_data_ESP():
     while True:
         try:
-            if not clients:
+            if not esps:
                 print("⚠️ ESP32デバイスが接続されていません。")
                 await asyncio.sleep(2.5)
                 break
             # 各ESP32にデータを送信
-            for i, client in enumerate(clients):
-                if client.is_connected:
-                    await client.write_gatt_char(CHAR_UUID, servo_data.pack_data())
-                    # print(f"📤 送信 to ESP32-{i}: {servo_data.get_data()}")
+            for i, esp in enumerate(esps):
+                if esp.is_connected:
+                    await esp.send(servo_data.data_type(), servo_data.pack_data())
+                    # print(f"📤 送信 to {esp}: {servo_data.get_data()}")
                 else:
-                    raise Exception(f"ESP32-{i} ({client.address}) は接続されていません。")
+                    raise Exception(f"{esp} は接続されていません。")
             await asyncio.sleep(0.1)  # 1秒おきに送信
         except asyncio.CancelledError:
             break
@@ -56,7 +56,9 @@ async def Hto_ESP():
     while True:
         try:
             print("🔄 ESP32との接続を開始...")
-            clients = ble.connect(devices, CHAR_UUID, Hreceive_ESP)
+            for esp in esps:
+                await esp.connect(Hreceive_ESP)
+                print(f"✅ {esp} に接続完了")
             break
         except Exception as e:
             print(f"⚠️ ESP32接続エラー: {e}")
@@ -65,21 +67,20 @@ async def Hto_ESP():
     print("✅ ESP32との接続完了")
 
     # ESP32との送信を起動
-    send_data_task = asyncio.create_task(Hsend_data_ESP(clients))
+    send_data_task = asyncio.create_task(Hsend_data_ESP())
 
     try:
         await send_data_task
     except Exception as e:
-        print(f"⚠️ データ送信失敗 {client.address}: {e}")
+        print(f"⚠️ データ送信失敗: {e}")
     except asyncio.CancelledError:
         pass
     finally:
         send_data_task.cancel()
         print(f"❌ 切断")
-        for client in clients:
-            if client.is_connected:
-                await client.disconnect()
-                print(f"❌ 切断: {client.address}")
+        for esp in esps:
+            await esp.disconnect()
+            print(f"❌ 切断: {esp}")
 
 async def Hreceive_PC(reader: asyncio.StreamReader):
     esp_task = None

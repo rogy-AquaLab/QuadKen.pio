@@ -13,6 +13,8 @@ class Ble:
         self.char_uuid = char_uuid
         self.client = None
 
+    def __repr__(self):
+        return f"ESP32-{self.num} ({self.address})"
 
     async def connect(self , receive_func: callable):
         """
@@ -22,6 +24,9 @@ class Ble:
         :param Hreceive_ESP: データ受信時のコールバック関数
         :return: 接続したクライアントのリスト
         """
+        if self.client and self.client.is_connected:
+            print(f"ESP32-{self.num} ({self.address}) はすでに接続されています。")
+            return
         try:
             client = BleakClient(self.address)
             client = await client.connect()
@@ -29,16 +34,19 @@ class Ble:
                 raise ConnectionError(f"ESP32-{self.num} ({self.address}) への接続に失敗しました。")
             
             self.client = client
-            await client.start_notify(self.char_uuid, self.receive(receive_func))
+            await client.start_notify(self.char_uuid, self._receive(self , receive_func))
         except Exception as e:
             raise Exception(f"ESP32-{self.num} ({self.address}) - {e}") 
+        
+    async def disconnect(self):
+        """
+        ESP32デバイスから切断する
+        """
+        if self.client and self.client.is_connected:
+            await self.client.disconnect()
+            self.client = None
 
-    async def receive(receive_func: callable):
-        """
-        データを受信し、データタイプとサイズを取得する  
-        :param received_data: 受信したデータ
-        :return: データタイプ、サイズ、データ
-        """
+    def _receive(self , receive_func: callable):        
         def handler(sender, received_data):
             data_type_byte = received_data[0:1]
             data_type: int = data_type_byte[0]
@@ -48,7 +56,7 @@ class Ble:
             if len(data) != size:
                 raise ValueError(f"受信データのサイズが不正です: {len(data)} != {size}")
             
-            receive_func(data_type, size, data)
+            receive_func(self.num , data_type, size, data)
 
         return handler
 
