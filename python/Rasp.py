@@ -1,15 +1,15 @@
 import asyncio
 import struct
 import cv2
-from picamera2 import Picamera2
+from picamera2 import Picamera2 # type: ignore
 from bleak import BleakClient
 from tools import tcp , ble
 from tools.data_manager import DataManager
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"name": "ESP32-1", "address": "08:D1:F9:36:FF:3E"},
-    # {"name": "ESP32-2", "address": "AA:BB:CC:44:55:66"},
+    {"num": 1, "address": "08:D1:F9:36:FF:3E"},
+    # {"num": 2, "address": "AA:BB:CC:44:55:66"},
 ]
 
 CHAR_UUID = "abcd1234-5678-90ab-cdef-1234567890ab"
@@ -22,13 +22,13 @@ bno_data = DataManager(0x02, 3, 'bbb')
 config = DataManager(0xFF, 1, 'B')
 
 # 通知を受け取ったときのコールバック
-def Hreceive_ESP(device_name):
+def Hreceive_ESP(device_num):
     def handler(sender, data):
         # データを更新
         bno_data.unpack(data)
         
         # データを表示
-        print(f"📨 受信 from {device_name}: {bno_data.get_data()}")
+        print(f"📨 受信 from ESP-{device_num}: {bno_data.get_data()}")
     return handler
 
 async def Hsend_data_ESP(clients):
