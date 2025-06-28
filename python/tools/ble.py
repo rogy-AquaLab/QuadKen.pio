@@ -63,5 +63,7 @@ class Ble:
     async def send(self , data_type: int, data: bytes):
         size = len(data)
         header = data_type.to_bytes() + struct.pack('>I', size)
+        if not self.client or not self.client.is_connected:
+            raise ConnectionError(f"ESP32-{self.num} ({self.address}) は接続されていません。")
         await self.client.write_gatt_char(self.char_uuid, header + data)
 

@@ -2,7 +2,6 @@ import asyncio
 import struct
 import cv2
 from picamera2 import Picamera2 # type: ignore
-from bleak import Bleak
 from tools import tcp
 from tools.data_manager import DataManager , DataType
 from tools.ble import Ble
@@ -40,11 +39,8 @@ async def Hsend_data_ESP():
                 break
             # 各ESP32にデータを送信
             for i, esp in enumerate(esps):
-                if esp.is_connected:
-                    await esp.send(servo_data.data_type(), servo_data.pack_data())
-                    # print(f"📤 送信 to {esp}: {servo_data.get_data()}")
-                else:
-                    raise Exception(f"{esp} は接続されていません。")
+                await esp.send(servo_data.data_type(), servo_data.pack_data())
+                # print(f"📤 送信 to {esp}: {servo_data.get_data()}")
             await asyncio.sleep(0.1)  # 1秒おきに送信
         except asyncio.CancelledError:
             break
@@ -88,14 +84,13 @@ async def Hreceive_PC(reader: asyncio.StreamReader):
         try:
             data_type, size, data = await tcp.receive(reader)
             if data_type == 0xFF:
-                config.unpack(data)
-                print(f"📨 受信 from PC: {config.get_data()}")
                 if esp_task is None or esp_task.done():
                 # ESP32との接続を開始
                     esp_task = asyncio.create_task(Hto_ESP())
                 continue
-            print(f"📨 受信 from PC: {servo_data.get_data()}")
-            servo_data.unpack(data)
+
+            received_data = DataManager.unpack(data_type, data)
+            print(f"📨 受信 from PC: {received_data}")
         except asyncio.CancelledError:
             break
 
@@ -104,7 +99,7 @@ async def Hsend_data_PC(writer: asyncio.StreamWriter):
         try:
             await tcp.send(writer, bno_data.data_type(), bno_data.pack_data())
             # print(f"📤 送信 to PC: {bno_data.get_data()}")
-            await asyncio.sleep(0.05)  # 0.5秒おき
+            await asyncio.sleep(0.5)  # 0.5秒おき
         except asyncio.CancelledError:
             pass
         except ValueError as e:

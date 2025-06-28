@@ -20,12 +20,12 @@ config = DataManager(0xFF, 1, DataType.UINT8)
 async def Hsend_Rasp(writer: asyncio.StreamWriter):
     n= 0
     while True:
-        if n == 10:
-            print("10回送信")
-            await tcp.send(writer, config.identifier(), config.pack())
-            n = 0
-            await asyncio.sleep(1)
-            continue
+        # if n == 10:
+        #     print("10回送信")
+        #     await tcp.send(writer, config.identifier(), config.pack())
+        #     n = 0
+        #     await asyncio.sleep(1)
+        #     continue
             
         await tcp.send(writer, servo_data.identifier(), servo_data.pack())
         # print(f"📤 送信 : {servo_data.get_data()}")
@@ -71,7 +71,7 @@ async def tcp_client():
                     num = 0
                 data8[i] = num
 
-            servo_data.update_data(data8)
+            servo_data.update(data8)
             print("✅ 入力完了:", data8)
             await asyncio.sleep(1)
 
