@@ -4,8 +4,9 @@ import struct
 from simple_pid import PID
 import matplotlib.pyplot as plt
 import numpy as np
-from tools import tcp
-from tools.data_manager import DataManager
+from tools.tcp import Tcp
+from tools.data_manager import DataManager , DataType
+
 import pygame
 
 # 初期化
@@ -23,32 +24,35 @@ if pygame.joystick.get_count() == 0:
 HOST = 'takapi.local'
 PORT = 5000
 
+tcp = Tcp(HOST, PORT)
+
 async def async_input(prompt: str = "") -> str:
     return await asyncio.to_thread(input, prompt)
 
-servo_data = DataManager(0x01, 8, 'BBBBBBBB')
-bno_data = DataManager(0x02, 3, 'bbb')
-config = DataManager(0xFF, 1, 'B')
+servo_data = DataManager(0x01, 8, DataType.UINT8)
+bno_data = DataManager(0x02, 3, DataType.INT8)
+config = DataManager(0xFF, 1, DataType.UINT8)
 
-async def Hsend_Rasp(writer: asyncio.StreamWriter):
+
+async def Hsend_Rasp():
     n= 0
     while True:
         if n == 10:
             print("10回送信")
-            await tcp.send(writer, config.data_type(), config.pack_data())
+            await tcp.send(config.identifier(), config.pack())
+            n = 0
             await asyncio.sleep(1)
             n +=1
             continue
             
-        await tcp.send(writer, servo_data.data_type(), servo_data.pack_data())
+        await tcp.send(servo_data.identifier(), servo_data.pack())
         # print(f"📤 送信 : {servo_data.get_data()}")
         await asyncio.sleep(0.1)
         n += 1
 
-async def Hreceive_Rasp(reader: asyncio.StreamReader):
+async def Hreceive_Rasp():
     while True:
-        data_type, size, data = await tcp.receive(reader)
-        # print(f"📥 受信 : タイプ={data_type}, サイズ={size}バイト")
+        data_type, size, data = await tcp.receive()
 
         if data_type == 0x00:
             img_array = np.frombuffer(data, dtype=np.uint8)
@@ -56,11 +60,9 @@ async def Hreceive_Rasp(reader: asyncio.StreamReader):
             cv2.imshow('Async TCP Stream', frame)
             if cv2.waitKey(1) == ord('q'):
                 raise EOFError("ユーザーが'q'で終了")  # 明示的に終了を伝える
-        elif data_type == 0x02:
-            bno_data.unpack(data)
-            print(f"📨 受信: {bno_data.get_data()}")
-        else:
-            raise ValueError(f"未知のデータタイプ: {data_type}")
+        
+        received_data = DataManager.unpack(data_type, data)
+        print(f"📥 受信 : {received_data}")
 
 async def Hpid():
     pid = PID(1, 0, 0.05, setpoint=120)
@@ -72,11 +74,11 @@ async def Hpid():
 async def tcp_client():
     print("🔵 接続中...")
     
-    reader, writer = await asyncio.open_connection(HOST, PORT)
-    print(f"🔗 接続: {HOST}:{PORT}")
+    host , port = await tcp.connect()
+    print(f"🔗 接続: {host}:{port}")
 
-    send_task = asyncio.create_task(Hsend_Rasp(writer))
-    receive_task = asyncio.create_task(Hreceive_Rasp(reader))
+    send_task = asyncio.create_task(Hsend_Rasp())
+    receive_task = asyncio.create_task(Hreceive_Rasp())
     pid_task = asyncio.create_task(Hpid())
 
     try:
@@ -112,9 +114,7 @@ async def tcp_client():
             receive_task.cancel()
         await asyncio.gather(*[t for t in [send_task, receive_task] if t], return_exceptions=True)
 
-        if 'writer' in locals():
-            writer.close()
-            await writer.wait_closed()
+        await tcp.close()
         cv2.destroyAllWindows()
         print("✅ 終了しました")
 
