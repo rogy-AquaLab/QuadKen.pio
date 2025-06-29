@@ -47,7 +47,7 @@ async def Hsend_Rasp():
             
         await tcp.send(servo_data.identifier(), servo_data.pack())
         print(f"📤 送信 : {servo_data.get()}")
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.05)
         n += 1
 
 async def Hreceive_Rasp():

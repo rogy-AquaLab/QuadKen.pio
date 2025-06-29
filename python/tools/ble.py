@@ -50,12 +50,7 @@ class Ble:
         def handler(sender, received_data):
             identifier_byte = received_data[0:1]
             identifier: int = identifier_byte[0]
-            # size_bytes = received_data[1:5]
-            # size: int = struct.unpack('>I', size_bytes)[0]
             data: bytes = received_data[1:]  # sizeを省略して受信データ全体を取得
-            # if len(data) != size:
-            #     raise ValueError(f"受信データのサイズが不正です: {len(data)} != {size}")
-            
             receive_func(self.num , identifier, data)
 
         return handler
