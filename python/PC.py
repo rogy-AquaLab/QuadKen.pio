@@ -40,14 +40,14 @@ async def Hsend_Rasp():
         if n == 10:
             print("10回送信")
             await tcp.send(config.identifier(), config.pack())
-            n = 0
+            # n = 0
             await asyncio.sleep(1)
             n +=1
             continue
             
         await tcp.send(servo_data.identifier(), servo_data.pack())
-        # print(f"📤 送信 : {servo_data.get_data()}")
-        await asyncio.sleep(0.1)
+        print(f"📤 送信 : {servo_data.get()}")
+        await asyncio.sleep(0.2)
         n += 1
 
 async def Hreceive_Rasp():
@@ -88,14 +88,14 @@ async def tcp_client():
 
             # スティックの値を取得（例：左スティックX/Y軸）
             axis_x = joystick.get_axis(0)
-            print(f"スティック: X={axis_x:.2f}")
+            # print(f"スティック: X={axis_x:.2f}")
 
             servo_angle = int((axis_x + 1) * 90)
             data8[0] = servo_angle
 
             
-            servo_data.update_data(data8)
-            print("✅ 入力完了:", data8)
+            servo_data.update(data8)
+            # print("✅ 入力完了:", data8)
             await asyncio.sleep(0.1)
 
     except (EOFError, KeyboardInterrupt) as e:

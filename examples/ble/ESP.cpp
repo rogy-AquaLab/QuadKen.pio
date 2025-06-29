@@ -29,6 +29,7 @@ void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data)
     Serial.print(" ");
   }
   Serial.println();
+  servo.write(servo_data.get()[0]); // Set servo position based on received data
 }
 
 BLE ble("ESP32-BLE-Servo2", 
@@ -36,10 +37,6 @@ BLE ble("ESP32-BLE-Servo2",
         CHARACTERISTIC_UUID,
         receiveCallback
 );
-
-
-
-
 
 void setup() {
   Serial.begin(115200);
@@ -63,9 +60,7 @@ void loop() {
     Serial.print(" ");
   }
   Serial.println();
-  ble.send(bno_data.identifier(),bno_data.pack()); // Send servo data with identifier 1
-  servo.write(servo_data.get()[0]); // Set servo position based on received data
-  Serial.print("Servo Position: ");
-  delay(1000);
+  // ble.send(bno_data.identifier(),bno_data.pack()); // Send servo data with identifier 1
+  delay(100);
 }
 

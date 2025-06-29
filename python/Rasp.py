@@ -100,9 +100,10 @@ async def Hreceive_PC():
                 for esp in esps:
                     await esp.send(identifier, data)
                     # print(f"📤 送信 to {esp}: {received_data}")
-            except ConnectionError as e:
+            except (ConnectionError , Exception) as e:
                 print(f"{e}")
                 continue
+
         except asyncio.CancelledError:
             break
 
