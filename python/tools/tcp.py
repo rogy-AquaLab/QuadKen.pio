@@ -11,7 +11,7 @@ async def receive(reader: asyncio.StreamReader):
 
 async def send(writer: asyncio.StreamWriter, data_type: int, data: bytes):
     size = len(data)
-    header = data_type.to_bytes() + struct.pack('>I', size)
+    header = struct.pack('B', data_type) + struct.pack('>I', size)
     writer.write(header + data)
     await writer.drain()
 

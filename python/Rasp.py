@@ -8,8 +8,8 @@ from tools.ble import Ble
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890ab"},
-    # {"num": 2, "address": "AA:BB:CC:44:55:66" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
+    # {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890ab"},
+    {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
 ]
 esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
 
@@ -23,9 +23,9 @@ bno_data = DataManager(0x02, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 # 通知を受け取ったときのコールバック
-def Hreceive_ESP(device_num , data_type, size, data):
+def Hreceive_ESP(device_num , identifier, data):
     # データを更新
-    received_data = DataManager.unpack(data_type, data)
+    received_data = DataManager.unpack(identifier, data)
     
     # データを表示
     print(f"📨 受信 from ESP-{device_num}: {received_data}")
@@ -39,7 +39,7 @@ async def Hsend_data_ESP():
                 break
             # 各ESP32にデータを送信
             for i, esp in enumerate(esps):
-                await esp.send(servo_data.data_type(), servo_data.pack_data())
+                await esp.send(servo_data.identifier(), servo_data.pack())
                 # print(f"📤 送信 to {esp}: {servo_data.get_data()}")
             await asyncio.sleep(0.1)  # 1秒おきに送信
         except asyncio.CancelledError:
@@ -82,14 +82,14 @@ async def Hreceive_PC(reader: asyncio.StreamReader):
     esp_task = None
     while True:
         try:
-            data_type, size, data = await tcp.receive(reader)
-            if data_type == 0xFF:
+            identifier, size, data = await tcp.receive(reader)
+            if identifier == 0xFF:
                 if esp_task is None or esp_task.done():
                 # ESP32との接続を開始
                     esp_task = asyncio.create_task(Hto_ESP())
                 continue
 
-            received_data = DataManager.unpack(data_type, data)
+            received_data = DataManager.unpack(identifier, data)
             print(f"📨 受信 from PC: {received_data}")
         except asyncio.CancelledError:
             break
@@ -97,7 +97,7 @@ async def Hreceive_PC(reader: asyncio.StreamReader):
 async def Hsend_data_PC(writer: asyncio.StreamWriter):
     while True:
         try:
-            await tcp.send(writer, bno_data.data_type(), bno_data.pack_data())
+            await tcp.send(writer, bno_data.identifier(), bno_data.pack())
             # print(f"📤 送信 to PC: {bno_data.get_data()}")
             await asyncio.sleep(0.5)  # 0.5秒おき
         except asyncio.CancelledError:

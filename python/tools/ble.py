@@ -29,12 +29,12 @@ class Ble:
             return
         try:
             client = BleakClient(self.address)
-            client = await client.connect()
-            if not client:
+            connection = await client.connect()
+            if not connection:
                 raise ConnectionError(f"ESP32-{self.num} ({self.address}) への接続に失敗しました。")
             
             self.client = client
-            await client.start_notify(self.char_uuid, self._receive(self , receive_func))
+            await client.start_notify(self.char_uuid, self._receive(receive_func))
         except Exception as e:
             raise Exception(f"ESP32-{self.num} ({self.address}) - {e}") 
         
@@ -48,21 +48,21 @@ class Ble:
 
     def _receive(self , receive_func: callable):        
         def handler(sender, received_data):
-            data_type_byte = received_data[0:1]
-            data_type: int = data_type_byte[0]
-            size_bytes = received_data[1:5]
-            size: int = struct.unpack('>I', size_bytes)[0]
-            data: bytes = received_data[5:5 + size]
-            if len(data) != size:
-                raise ValueError(f"受信データのサイズが不正です: {len(data)} != {size}")
+            identifier_byte = received_data[0:1]
+            identifier: int = identifier_byte[0]
+            # size_bytes = received_data[1:5]
+            # size: int = struct.unpack('>I', size_bytes)[0]
+            data: bytes = received_data[1:]  # sizeを省略して受信データ全体を取得
+            # if len(data) != size:
+            #     raise ValueError(f"受信データのサイズが不正です: {len(data)} != {size}")
             
-            receive_func(self.num , data_type, size, data)
+            receive_func(self.num , identifier, data)
 
         return handler
 
-    async def send(self , data_type: int, data: bytes):
-        size = len(data)
-        header = data_type.to_bytes() + struct.pack('>I', size)
+    async def send(self , identifier: int, data: bytes):
+        # size = len(data)
+        header = struct.pack('B', identifier) # + struct.pack('>I', size)
         if not self.client or not self.client.is_connected:
             raise ConnectionError(f"ESP32-{self.num} ({self.address}) は接続されていません。")
         await self.client.write_gatt_char(self.char_uuid, header + data)

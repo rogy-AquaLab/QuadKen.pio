@@ -20,12 +20,12 @@ config = DataManager(0xFF, 1, DataType.UINT8)
 async def Hsend_Rasp(writer: asyncio.StreamWriter):
     n= 0
     while True:
-        # if n == 10:
-        #     print("10回送信")
-        #     await tcp.send(writer, config.identifier(), config.pack())
-        #     n = 0
-        #     await asyncio.sleep(1)
-        #     continue
+        if n == 10:
+            print("10回送信")
+            await tcp.send(writer, config.identifier(), config.pack())
+            n = 0
+            await asyncio.sleep(1)
+            continue
             
         await tcp.send(writer, servo_data.identifier(), servo_data.pack())
         # print(f"📤 送信 : {servo_data.get_data()}")
@@ -35,7 +35,6 @@ async def Hsend_Rasp(writer: asyncio.StreamWriter):
 async def Hreceive_Rasp(reader: asyncio.StreamReader):
     while True:
         data_type, size, data = await tcp.receive(reader)
-        # print(f"📥 受信 : タイプ={data_type}, サイズ={size}バイト")
 
         if data_type == 0x00:
             img_array = np.frombuffer(data, dtype=np.uint8)
@@ -44,7 +43,8 @@ async def Hreceive_Rasp(reader: asyncio.StreamReader):
             if cv2.waitKey(1) == ord('q'):
                 raise EOFError("ユーザーが'q'で終了")  # 明示的に終了を伝える
         
-        DataManager.unpack(data_type, data)
+        received_data = DataManager.unpack(data_type, data)
+        print(f"📥 受信 : {received_data}")
 
 async def tcp_client():
     print("🔵 接続中...")
