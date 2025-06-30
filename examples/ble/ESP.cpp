@@ -60,7 +60,7 @@ void loop() {
     Serial.print(" ");
   }
   Serial.println();
-  // ble.send(bno_data.identifier(),bno_data.pack()); // Send servo data with identifier 1
+  ble.send(bno_data.identifier(),bno_data.pack()); // Send servo data with identifier 1
   delay(100);
 }
 
