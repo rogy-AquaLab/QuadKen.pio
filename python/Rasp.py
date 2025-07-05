@@ -5,6 +5,7 @@ from picamera2 import Picamera2 # type: ignore
 from tools.tcp import Tcp
 from tools.data_manager import DataManager , DataType
 from tools.ble import Ble
+from tools.bno import Bno
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
@@ -33,23 +34,6 @@ def Hreceive_ESP(device_num , identifier, data):
     # PCにデータを送信
     asyncio.create_task(tcp.send(identifier, data))
 
-# async def Hsend_data_ESP():
-#     while True:
-#         try:
-#             if not esps:
-#                 print("⚠️ ESP32デバイスが接続されていません。")
-#                 await asyncio.sleep(2.5)
-#                 break
-#             # 各ESP32にデータを送信
-#             for i, esp in enumerate(esps):
-#                 await esp.send(servo_data.identifier(), servo_data.pack())
-#                 # print(f"📤 送信 to {esp}: {servo_data.get_data()}")
-#             await asyncio.sleep(0.1)  # 1秒おきに送信
-#         except asyncio.CancelledError:
-#             break
-#         except Exception as e:
-#             raise Exception(f"{e}")
-
 async def Hto_ESP():
     # ESP32との接続
     while True:
@@ -64,9 +48,6 @@ async def Hto_ESP():
             await asyncio.sleep(2.5)
         
     print("✅ ESP32との接続完了")
-
-    # ESP32との送信を起動
-    # send_data_task = asyncio.create_task(Hsend_data_ESP())
 
     try:
         while True:
@@ -106,17 +87,6 @@ async def Hreceive_PC():
 
         except asyncio.CancelledError:
             break
-
-# async def Hsend_data_PC(writer: asyncio.StreamWriter):
-#     while True:
-#         try:
-#             await tcp.send(writer, bno_data.identifier(), bno_data.pack())
-#             # print(f"📤 送信 to PC: {bno_data.get_data()}")
-#             await asyncio.sleep(0.5)  # 0.5秒おき
-#         except asyncio.CancelledError:
-#             pass
-#         except ValueError as e:
-#             print(f"⚠️ 入力エラー: {e}")
 
 async def capture_frame(picam):
     loop = asyncio.get_running_loop()
