@@ -24,6 +24,10 @@ void setup() {
 void loop() {
   imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
   Serial.print("Yaw: ");
-  Serial.println(euler.x()); // 軽量読み出し
-  delay(1000); // 100Hzまで
+  Serial.print(euler.x());
+  Serial.print(" Pitch: ");
+  Serial.print(euler.y());
+  Serial.print(" Roll: ");
+  Serial.println(euler.z());
+  delay(10); // 100Hzまで
 }

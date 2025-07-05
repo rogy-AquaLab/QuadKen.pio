@@ -1,44 +1,37 @@
 # include <ESP32Servo.h>
 # include <Arduino.h>
 
-constexpr int Pin1 = 13; // GPIO pin for the servo
-constexpr int Pin2 = 14; // GPIO pin for the servo
-constexpr int Pin3 = 15; // GPIO pin for the servo
+constexpr int Pin1 = 14; // GPIO pin for the servo
+constexpr int Pin2 = 15; // GPIO pin for the servo
+constexpr int Pin3 = 16; // GPIO pin for the servo
 
 Servo servo1;
 Servo servo2;
 Servo servo3;
 
-void input() {
+int input() {
   if (Serial.available() > 0) {
     char input = Serial.read();   // 1文字読み取る
 
     if (input == 'c') {
       // 'c'が来たときの処理
-      servo3.write(180); // 180度に回転
-      Serial.println("Servo 3 is now at 180 degrees.");
+      return 180; // 180度に回転
     } else if (input == 'd') {
       // 'd'が来たときの処理
-      servo3.write(0); // 0度に回転
-      Serial.println("Servo 3 is now at 0 degrees.");
+      return 0; // 0度に回転
     } else if (input == 's') {
       // 's'が来たときの処理
-      servo3.write(90); // 90度に回転
-      Serial.println("Servo 3 is now at 90 degrees.");
+      return 90; // 90度に回転
     } else if (input == 'q') {
       // 'q'が来たときの処理
-      servo3.write(45); // 45度に回転
-      Serial.println("Servo 3 is now at 45 degrees.");
+      return 45; // 45度に回転
     } else if (input == 'a') {
       // 'a'が来たときの処理
-      servo3.write(135); // 135度に回転
-      Serial.println("Servo 3 is now at 135 degrees.");
-    } else if (input == 'z') {
-      // 'z'が来たときの処理
-      servo3.write(90); // 90度に回転
-      Serial.println("Servo 3 is now at 90 degrees.");
+      return 135; // 135度に回転
     }
   }
+  return -1; // 有効な入力がない場合は-1を返す
+
 }
 
 void setup() {
@@ -61,19 +54,23 @@ void setup() {
 }
 
 void loop() {
-  input();
+  int val = input();
 
+  if (val < 0) {
+    // Serial.println("No input received");
+    delay(1000); // wait for a second before checking again
+    return; // No valid input, exit the loop
+  }
 
-  // for (int val = 0; val < 90; val += 10) { // Sweep from 0 degrees to 180 degrees
-  //   Serial.print("val1: ");
-  //   Serial.println(val);
-  //   Serial.print("val2: ");
-  //   Serial.println(180-val);
-  //   Serial.print("val3: ");
-  //   Serial.println(val*2);
-  //   servo1.write(val);
-  //   servo2.write(180-val);
-  //   servo3.write(val*2);
+  Serial.print("val1: ");
+  Serial.println(val);
+  // Serial.print("val2: ");
+  // Serial.println(180-val);
+  // Serial.print("val3: ");
+  // Serial.println(val*2);
+  servo1.write(val);
+  servo2.write(180-val);
+  servo3.write(val*2);
   //   delay(500);
   // }
   delay(1000); // wait for a second 
