@@ -6,20 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tools.tcp import Tcp
 from tools.data_manager import DataManager , DataType
-
+from tools.controller import Controller
+import time
 import pygame
 
 # 初期化
-pygame.init()
-pygame.joystick.init()
-joystick = pygame.joystick.Joystick(0)
-joystick.init()
-print(f"接続中のジョイスティック: {joystick.get_name()}")
-
-# ジョイスティック接続確認
-if pygame.joystick.get_count() == 0:
-    print("ジョイスティックが接続されていません。")
-    exit()
+controller = Controller()
 
 HOST = 'takapi.local'
 PORT = 5000
@@ -33,22 +25,45 @@ servo_data = DataManager(0x01, 8, DataType.UINT8)
 bno_data = DataManager(0x02, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
+def main():
+    
+    data8 = [0] * 8
+    controller.update()  # コントローラーの状態を更新
 
-async def Hsend_Rasp():
-    n= 0
-    while True:
-        if n == 10:
-            print("10回送信")
-            await tcp.send(config.identifier(), config.pack())
-            # n = 0
-            await asyncio.sleep(1)
-            n +=1
-            continue
+    # スティックの値を取得（例：左スティックX/Y軸）
+    angle , magnitude = controller.get_angle()
+    print(f"角度: {angle:.2f}, 大きさ: {magnitude:.2f}")
+
+    # ボタンの状態を表示
+    if controller.pushed_button(0):  # Aボタン
+        print("Aボタンが押されました")
+        asyncio.create_task(tcp.send(config.identifier(), config.pack()))
+        # ここでAボタンが押されたときの処理を追加でWきます
+
+    time.sleep(1)  # 0.1秒待機
+
+    
+
+    
+
+
+
+
+# async def Hsend_Rasp():
+#     n= 0
+#     while True:
+#         if n == 10:
+#             print("10回送信")
+#             await tcp.send(config.identifier(), config.pack())
+#             # n = 0
+#             await asyncio.sleep(1)
+#             n +=1
+#             continue
             
-        await tcp.send(servo_data.identifier(), servo_data.pack())
-        # print(f"📤 送信 : {servo_data.get()}")
-        await asyncio.sleep(0.1)
-        n += 1
+#         await tcp.send(servo_data.identifier(), servo_data.pack())
+#         # print(f"📤 送信 : {servo_data.get()}")
+#         await asyncio.sleep(0.1)
+#         n += 1
 
 async def Hreceive_Rasp():
     while True:
@@ -77,26 +92,11 @@ async def tcp_client():
     host , port = await tcp.connect()
     print(f"🔗 接続: {host}:{port}")
 
-    send_task = asyncio.create_task(Hsend_Rasp())
     receive_task = asyncio.create_task(Hreceive_Rasp())
-    pid_task = asyncio.create_task(Hpid())
 
     try:
         while True:
-            data8 = [0] * 8
-            pygame.event.pump()
-
-            # スティックの値を取得（例：左スティックX/Y軸）
-            axis_x = joystick.get_axis(0)
-            # print(f"スティック: X={axis_x:.2f}")
-
-            servo_angle = int((axis_x + 1) * 90)
-            data8[0] = servo_angle
-
-            
-            servo_data.update(data8)
-            # print("✅ 入力完了:", data8)
-            await asyncio.sleep(0.1)
+            main()
 
     except (EOFError, KeyboardInterrupt) as e:
         print(f"⛔ 終了: {e}")
@@ -108,14 +108,14 @@ async def tcp_client():
         print(f"⚠️ 予期しないエラー: {e}")
     finally:
         print("🧹 切断処理中...")
-        if 'send_task' in locals():
-            send_task.cancel()
         if 'receive_task' in locals():
             receive_task.cancel()
-        await asyncio.gather(*[t for t in [send_task, receive_task] if t], return_exceptions=True)
-
+        
         await tcp.close()
         cv2.destroyAllWindows()
         print("✅ 終了しました")
 
 asyncio.run(tcp_client())
+
+# while True:
+#     main()
