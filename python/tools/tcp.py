@@ -50,11 +50,14 @@ class Tcp:
         TCP接続を閉じる
         """
         if self.writer:
-            self.writer.close()
-            await self.writer.wait_closed()
-            self.writer = None
-        if self.reader:
-            self.reader = None
+            try:
+                self.writer.close()
+                await self.writer.wait_closed()
+            except (ConnectionResetError, OSError) as e:
+                pass
+            finally:
+                self.writer = None
+                self.reader = None
     
     async def send(self, identifier: int, data: bytes):
         """
