@@ -7,15 +7,15 @@
 
 ### platformio.ini
 - [esp32dev(defalut)]
-- - ビルドファイル：src/main.cpp
-- - メイン書き込み
+  - ビルドファイル：src/main.cpp
+  - メイン書き込み
 
 - [Eservo]
-- - ビルドファイル：examples/servo/main.cpp
-- - servoサンプルコード
+  - ビルドファイル：examples/servo/main.cpp
+  - servoサンプルコード
 
 - [Ebldc]
-- - ビルドファイル：examples/bldc/main.cpp
-- - bldcサンプルコード
+  - ビルドファイル：examples/bldc/main.cpp
+  - bldcサンプルコード
 
-- etc..
+etc..
