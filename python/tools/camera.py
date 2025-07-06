@@ -1,16 +1,18 @@
 from picamera2 import Picamera2 # type: ignore
 import cv2
 import asyncio
+import numpy as np
 
 class Picam:
 
     def __init__(self):
-        self.picam = Picamera2()
+        self.picam = None
 
     def __repr__(self):
         return "Picamera2"
 
     def start(self):
+        self.picam = Picamera2()
         self.picam.configure(self.picam.create_video_configuration(main={"format": 'RGB888'}))
         self.picam.start()
 

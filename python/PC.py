@@ -1,8 +1,8 @@
 import asyncio
-import cv2
-from simple_pid import PID
-import matplotlib.pyplot as plt
 import numpy as np
+import cv2
+# from simple_pid import PID
+# import matplotlib.pyplot as plt
 from tools.tcp import Tcp
 from tools.data_manager import DataManager , DataType
 from tools.controller import Controller , Button
@@ -31,8 +31,14 @@ config = DataManager(0xFF, 1, DataType.UINT8)
 
 async def main():
 
-    if controller.pushed_button(Button.A):  # Aボタン
-        print("Aボタンが押されました")
+    if controller.pushed_button(Button.START):  # Aボタン
+        config.update([1]) # ESPとの接続開始
+        await asyncio.gather(
+            tcp.send(config.identifier(), config.pack()),
+            asyncio.sleep(0.1))  # 少し待つ
+        return
+    elif controller.pushed_button(Button.HOME):  # Bボタン
+        config.update([0]) 
         await asyncio.gather(
             tcp.send(config.identifier(), config.pack()),
             asyncio.sleep(0.1))  # 少し待つ
@@ -57,20 +63,15 @@ async def main():
 
 async def Hreceive_Rasp():
     while True:
-        try:
-            data_type, size, data = await tcp.receive()
+        data_type, size, data = await tcp.receive()
 
-            if data_type == 0x00:
-                img_array = np.frombuffer(data, dtype=np.uint8)
-                frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-                cv2.imshow('Async TCP Stream', frame)
-                if cv2.waitKey(1) == ord('q'):
-                    raise EOFError("ユーザーが'q'で終了")  # 明示的に終了を伝える
-            
-            received_data = DataManager.unpack(data_type, data)
-            print(f"📥 受信 : {received_data}")
-        except (asyncio.IncompleteReadError, EOFError) as e:
-            raise
+        if data_type == 0x00:
+            img_array = np.frombuffer(data, dtype=np.uint8)
+            frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            cv2.imshow('Async TCP Stream', frame)
+            continue
+        received_data = DataManager.unpack(data_type, data)
+        print(f"📥 受信 : {received_data}")
 
 async def tcp_client():
     print("🔵 接続中...")
@@ -92,8 +93,6 @@ async def tcp_client():
                 if receive_task.exception():
                     raise receive_task.exception()
 
-    except (EOFError, KeyboardInterrupt) as e:
-        print(f"⛔ 終了: {e}")
     except (asyncio.IncompleteReadError , EOFError):
         print("🔴 Raspberry Pi側から接続が終了されました")
     except (ConnectionResetError, OSError) as e:
@@ -102,10 +101,7 @@ async def tcp_client():
     finally:
         print("🧹 切断処理中...")
         receive_task.cancel()
-        try:
-            await receive_task
-        except Exception:
-            pass
+        await asyncio.gather(receive_task, return_exceptions=True)
         await tcp.close()
         cv2.destroyAllWindows()
         print("✅ 終了しました")

@@ -51,16 +51,6 @@ void setup() {
 
 void loop() {
   // Update bno data
-  bno_data.update({(int8_t)(servo_data.get()[0] + servo_data.get()[1]), 
-                   (int8_t)(servo_data.get()[2] + servo_data.get()[3]), 
-                   (int8_t)(servo_data.get()[4] + servo_data.get()[5])});
-  Serial.print("BNO Data (int8) : ");
-  for (const auto& byte : bno_data.get()) {
-    Serial.print(byte);
-    Serial.print(" ");
-  }
-  Serial.println();
-  ble.send(bno_data.identifier(),bno_data.pack()); // Send servo data with identifier 1
   delay(100);
 }
 

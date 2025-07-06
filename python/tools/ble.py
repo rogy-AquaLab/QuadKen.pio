@@ -1,6 +1,7 @@
 import asyncio
 import struct
 from bleak import BleakClient
+from bleak.exc import BleakDBusError
 
 class Ble:
     """
@@ -60,5 +61,10 @@ class Ble:
         header = struct.pack('B', identifier) # + struct.pack('>I', size)
         if not self.client or not self.client.is_connected:
             raise ConnectionError(f"ESP32-{self.num} ({self.address}) は接続されていません。")
-        await self.client.write_gatt_char(self.char_uuid, header + data)
-
+        for attempt in range(3):  # 最大3回再試行
+            try:
+                await self.client.write_gatt_char(self.char_uuid, header + data, response=False)
+                return
+            except BleakDBusError as e:
+                print("⚠️ BLE通信エラー:", e)
+                continue
