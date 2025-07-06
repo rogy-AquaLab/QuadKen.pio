@@ -1,22 +1,36 @@
 # PC <-> RasPi <-> 複数ESP32
-### 仮想環境
-bleak , opencv-python , simple_pid
-### PC <-> RasPi
+## インストール
+#### PC側
+opencv-python , simple_pid , pygame
+#### Rasp側
+bleak , opencv-python , Picamera2
+- Picamera2は仮想環境内にインストールできないため(多分)、ラズパイ本体にインストールして、仮想環境を本体のライブラリも使える状態で立ち上げて使用中
+
+## PC <-> RasPi
 - asyncioってやつを使ってる。async/await使えてPORTも開けるっぽい
-- あんまり理解してないからふわふわコード
 
-### RasPi <-> 複数ESP32
+## RasPi <-> 複数ESP32
 - RasPi側ではbleakなるものを使ってる。async/await使えて複数Bluetooth接続できるっぽい
+- ラズパイ側から送信するとき送信チェックをしてないため、時々遅れていないかも
 
-## テストコード
-1. PCで8個のuint8データを作ってRasPiに送り、RasPiがESPに送る
-2. ESPがuint8のデータを足したりして、適当な3個のint8のデータを作る
-3. ESPからRasPi、RasPiからPCに送る。
+## フォルダ
+#### test
+- サンプルコード置き場、実験用
+- Platformio側で使ってるexamplesフォルダと一緒
 
-- 基本receiveは常に監視、sendは全部数秒おきに送ってる。
-- PC、RasPi、ESPがそれぞれuint8×8、int8×3のデータを持ち、それをreceiveで書き換え、sendで取得してる。
+#### tools
+- 自作ライブラリ置き場
+- data_managerが今後消えるかも
 
-## 課題
-- 1つでも接続が切れたら、全部再起動(ファイルの再実行)が必要
-- ctr+cで実行停止したとき、エラーログが流れる。(理屈が分かってない)
-- 時間が余ったらubuntu+ros2もやりたい。けどたぶんできない。
+# 現時点コード説明 7/7
+- Raspは受け取ったものをただ流すだけ
+- PCでコントローラーの左スティックの角度を検知 -> Rasp -> ESP
+- PCのSTART,SELECT,HOMEボタンでESPとの接続を開始したりRaspを停止したりできる(Proコン用として設定)
+- ラグはほぼなくなった
+- カメラは死んだ
+
+## 今後
+- RaspでBNOを取得してPCに送信
+- PCで接続状態や機体の角度が一目見てわかるようにGUIを作成
+- カメラの蘇生
+- PCでESPの状態確認

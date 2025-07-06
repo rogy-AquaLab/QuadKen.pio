@@ -1,3 +1,6 @@
+// BLDCのサンプルコード
+// これは、ESP32Bldcライブラリを使用して、3つのBLDCモーターを制御するサンプルコードです。
+
 #include <ESP32Bldc.h>
 #include <Arduino.h>
 
