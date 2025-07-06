@@ -36,7 +36,6 @@ class Controller:
         self.joystick.init()
 
         self.button_states = [False] * (self.joystick.get_numbuttons() + 2)  # L2, R2を含むため+2
-        print (self.joystick.get_numbuttons())
 
     def update(self):
         # イベント処理（押し始めを検出するため）

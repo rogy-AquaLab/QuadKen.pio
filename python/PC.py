@@ -57,24 +57,20 @@ async def main():
 
 async def Hreceive_Rasp():
     while True:
-        data_type, size, data = await tcp.receive()
+        try:
+            data_type, size, data = await tcp.receive()
 
-        if data_type == 0x00:
-            img_array = np.frombuffer(data, dtype=np.uint8)
-            frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-            cv2.imshow('Async TCP Stream', frame)
-            if cv2.waitKey(1) == ord('q'):
-                raise EOFError("ユーザーが'q'で終了")  # 明示的に終了を伝える
-        
-        received_data = DataManager.unpack(data_type, data)
-        print(f"📥 受信 : {received_data}")
-
-async def Hpid():
-    pid = PID(1, 0, 0.05, setpoint=120)
-    pid.output_limits = (0, 180)
-    pid.sample_time = 1
-    await asyncio.sleep(1)
-
+            if data_type == 0x00:
+                img_array = np.frombuffer(data, dtype=np.uint8)
+                frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                cv2.imshow('Async TCP Stream', frame)
+                if cv2.waitKey(1) == ord('q'):
+                    raise EOFError("ユーザーが'q'で終了")  # 明示的に終了を伝える
+            
+            received_data = DataManager.unpack(data_type, data)
+            print(f"📥 受信 : {received_data}")
+        except (asyncio.IncompleteReadError, EOFError) as e:
+            raise
 
 async def tcp_client():
     print("🔵 接続中...")
@@ -92,10 +88,13 @@ async def tcp_client():
     try:
         while True:
             await main()
+            if receive_task.done():
+                if receive_task.exception():
+                    raise receive_task.exception()
 
     except (EOFError, KeyboardInterrupt) as e:
         print(f"⛔ 終了: {e}")
-    except asyncio.IncompleteReadError:
+    except (asyncio.IncompleteReadError , EOFError):
         print("🔴 Raspberry Pi側から接続が終了されました")
     except (ConnectionResetError, OSError) as e:
         print("🔌 接続がリセットされました、またはネットワークが利用不可になりました。")
@@ -105,7 +104,7 @@ async def tcp_client():
         receive_task.cancel()
         try:
             await receive_task
-        except asyncio.CancelledError:
+        except Exception:
             pass
         await tcp.close()
         cv2.destroyAllWindows()

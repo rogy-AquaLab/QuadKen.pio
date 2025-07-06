@@ -11,7 +11,6 @@ class Tcp:
         self.port = port
         self.reader = None
         self.writer = None
-        self.last_identifier = None
 
     def __repr__(self):
         return f"TCP ({self.host}:{self.port})"
@@ -81,36 +80,22 @@ class Tcp:
         if not self.reader:
             raise ConnectionError("TCP接続が確立されていません。")
         # 1バイトの識別子を読み取り、次に4バイトのサイズを読み取り、最後にデータを読み取る
-        if not self.last_identifier:
-            # 最初の受信時は識別子を読み取る
-            identifier_byte = await self.reader.readexactly(1)
-            identifier = identifier_byte[0]
-        else:
-            # 前回の識別子を使用する
-            identifier = self.last_identifier
-        identifier = identifier_byte[0]
-        size_bytes = await self.reader.readexactly(4)
-        size = struct.unpack('>I', size_bytes)[0]
-        data = await self.reader.readexactly(size)
+        try:
+            header_byte = await self.reader.readexactly(5)
+            identifier = struct.unpack('B', header_byte[0:1])[0]
+            size = struct.unpack('>I', header_byte[1:5])[0]
+            data = await self.reader.readexactly(size)
+        except asyncio.IncompleteReadError as e:
+            if e.partial == b'':
+                # 完全に接続が切断された場合
+                raise EOFError("接続が切断されました。") from e
+            else:
+                # 一部だけ届いたなど他の理由ならそのまま再送出
+                raise
+        except asyncio.CancelledError:
+            pass
 
-        # 続けて、同じ identifier だけ上書きしていく
-        while True:
-            try:
-                # 次の identifier を timeout 付きで読む
-                next_identifier_byte = await asyncio.wait_for(self.reader.readexactly(1), timeout=0.01)
-                next_identifier = next_identifier_byte[0]
 
-                if next_identifier == identifier:
-                    # 同じなら上書きして継続
-                    size_bytes = await self.reader.readexactly(4)
-                    size = struct.unpack('>I', size_bytes)[0]
-                    data = await self.reader.readexactly(size)
-                    continue
-                self.last_identifier = next_identifier
-                break
-            except asyncio.TimeoutError:
-                self.last_identifier = None
-                break
         return identifier, size, data
 
 
