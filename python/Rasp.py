@@ -166,4 +166,6 @@ async def server():
     async with server:
         await server.serve_forever()
 
-asyncio.run(server())
+# メイン関数をで実行
+if __name__ == "__main__":
+    asyncio.run(server())

@@ -14,10 +14,8 @@ try:
 except RuntimeError as e:
     print(f"⚠️ ジョイスティックの初期化に失敗: {e}")
     exit(1)
-HOST = 'takapi.local'
-PORT = 5000
 
-tcp = Tcp(HOST, PORT)
+tcp = Tcp('takapi.local', 5000)
 
 servo_data = DataManager(0x01, 8, DataType.UINT8)
 bno_data = DataManager(0x02, 3, DataType.INT8)
@@ -106,5 +104,7 @@ async def tcp_client():
         cv2.destroyAllWindows()
         print("✅ 終了しました")
 
-asyncio.run(tcp_client())
+# メイン関数をで実行
+if __name__ == "__main__":
+    asyncio.run(tcp_client())
 
