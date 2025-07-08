@@ -11,8 +11,9 @@ esp_task = None
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
+    # {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
     # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
+    {"num": 3, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
 ]
 esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
 
@@ -21,9 +22,11 @@ PORT = 5000
 
 tcp = Tcp(HOST, PORT)
 
+bno = Bno(True, 0x28)  # BNO055センサの初期化（クリスタルオシレータ使用、デフォルトアドレス0x28）
+
 # データ管理インスタンスの作成
 servo_data = DataManager(0x01, 8, DataType.UINT8)
-bno_data = DataManager(0x02, 3, DataType.INT8)
+bno_data = DataManager(0x02, 3, DataType.UINT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 async def shutdown():
@@ -36,16 +39,26 @@ async def shutdown():
     exit(0)
 
 async def main():
+    bno_euler = bno.euler()  # BNO055センサからの角度情報取得
+    if bno_euler is not None:
+        heading, roll, pitch = bno_euler
+        if 0 <= heading <= 360 and 0 <= roll <= 180 and -180 <= pitch <= 180:
+            bno_data.update([int(heading/2), int(roll/2), int(pitch/2 +90)])
+            # PCにデータを送信
+            await tcp.send(bno_data.identifier(), bno_data.pack())
+    else:
+        print("⚠️ BNO055センサからの角度情報が取得できません")
     await asyncio.sleep(0.1)  # 少し待つ
 
 # 通知を受け取ったときのコールバック
 def Hreceive_ESP(device_num , identifier, data):
-    # データを更新
-    received_data = DataManager.unpack(identifier, data)
-    print(f"📨 受信 from ESP-{device_num}: {received_data}")
+    print("おかしい")
+    # # データを更新
+    # received_data = DataManager.unpack(identifier, data)
+    # print(f"📨 受信 from ESP-{device_num}: {received_data}")
 
-    # PCにデータを送信
-    asyncio.create_task(tcp.send(identifier, data))
+    # # PCにデータを送信
+    # asyncio.create_task(tcp.send(identifier, data))
 
 async def Hto_ESP():
     # ESP32との接続
@@ -91,14 +104,14 @@ async def Hreceive_PC():
         received_data = DataManager.unpack(identifier, data)
         print(f"📨 受信 from PC: {received_data}")
         try:
-            a = time.time()
+            # a = time.time()
             # ESP32にデータを送信
             await asyncio.gather(
                 *[esp.send(identifier, data) for esp in esps],
                 return_exceptions=True
             )
-            b = time.time()
-            print(f"📤 ESP32に送信完了 (処理時間: {b-a}")
+            # b = time.time()
+            # print(f"📤 ESP32に送信完了 (処理時間: {b-a}")
         except ConnectionError as e:
             print(f"{e}")
             continue

@@ -19,8 +19,8 @@ while True:
     pygame.event.pump()
 
     # スティックの値を取得（例：左スティックX/Y軸）
-    axis_x = joystick.get_axis(0)
-    axis_y = joystick.get_axis(1)
+    axis_x = joystick.get_axis(1)
+    axis_y = joystick.get_axis(0)
 
     # スティックの状態を表示
     print(f"スティック: X={axis_x:.2f}, Y={axis_y:.2f}")
@@ -28,6 +28,6 @@ while True:
     # ボタンが押されたかを確認（例：全ボタンを確認）
     for button_index in range(joystick.get_numbuttons()):
         if joystick.get_button(button_index):
-            print("helloworld")
+            print(f"ボタン {button_index} が押されました")
 
     pygame.time.wait(100)  # CPU負荷軽減のため100ms待つ

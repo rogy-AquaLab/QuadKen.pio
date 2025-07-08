@@ -4,24 +4,43 @@ import pygame
 import math
 from enum import IntEnum
 
+# class Button(IntEnum):
+#     A = 0
+#     B = 1
+#     X = 2
+#     Y = 3
+#     SELECT = 4
+#     HOME = 5
+#     START = 6
+#     L_STICK = 7 # 左スティック押し込み
+#     R_STICK = 8 # 右スティック押し込み
+#     L1 = 9
+#     R1 = 10
+#     UP = 11
+#     DOWN = 12
+#     LEFT = 13
+#     RIGHT = 14
+#     L2 = 15
+#     R2 = 16
+
 class Button(IntEnum):
-    A = 0
-    B = 1
-    X = 2
+    A = 1
+    B = 2
+    X = 0
     Y = 3
-    SELECT = 4
-    HOME = 5
-    START = 6
-    L_STICK = 7 # 左スティック押し込み
-    R_STICK = 8 # 右スティック押し込み
-    L1 = 9
-    R1 = 10
-    UP = 11
-    DOWN = 12
-    LEFT = 13
-    RIGHT = 14
-    L2 = 15
-    R2 = 16
+    L1 = 4
+    R1 = 5
+    SELECT = 8
+    START = 9  # 左スティック押し込み
+    L_STICK = 10  # 右スティック押し込み
+    R_STICK = 11
+    HOME = 12 # 以下なし
+    UP = 13 
+    DOWN = 14
+    LEFT = 15
+    RIGHT = 16
+    L2 = 6  
+    R2 = 7  
 
 
 class Controller:

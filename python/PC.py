@@ -20,29 +20,23 @@ PORT = 5000
 tcp = Tcp(HOST, PORT)
 
 servo_data = DataManager(0x01, 8, DataType.UINT8)
-bno_data = DataManager(0x02, 3, DataType.INT8)
+bno_data = DataManager(0x02, 3, DataType.UINT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
-# def button_check():
-#     for button in range(20):  # ボタンの数は10個
-#         controller.update()  # コントローラーの状態を更新
-#         if controller.pushed_button(button):
-#             print(f"ボタン {button} が押されました")
 
 async def main():
-
     if controller.pushed_button(Button.START):  # Aボタン
         config.update([1]) # ESPとの接続開始
         await asyncio.gather(
             tcp.send(config.identifier(), config.pack()),
             asyncio.sleep(0.1))  # 少し待つ
         return
-    elif controller.pushed_button(Button.HOME):  # Bボタン
-        config.update([0]) 
-        await asyncio.gather(
-            tcp.send(config.identifier(), config.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
-        return
+    # elif controller.pushed_button(Button.HOME):  # Bボタン
+    #     config.update([0]) 
+    #     await asyncio.gather(
+    #         tcp.send(config.identifier(), config.pack()),
+    #         asyncio.sleep(0.1))  # 少し待つ
+    #     return
     if controller.pushed_button(Button.SELECT):  # Bボタン
         raise EOFError("ユーザーがSelectボタンで終了")  # 明示的に終了を伝える
 
@@ -51,7 +45,7 @@ async def main():
     data8 = [0] * 8
     controller.update()  # コントローラーの状態を更新
     angle , magnitude = controller.get_angle()
-    print(f"角度: {angle:.2f}, 大きさ: {magnitude:.2f}")
+    # print(f"角度: {angle:.2f}, 大きさ: {magnitude:.2f}")
     data8[0] = int(angle if angle > 0 else 0)  # 角度を整数に変換
     data8[1] = int(magnitude * 100)  # 大きさを0-100の範囲に変換
     servo_data.update(data8)
