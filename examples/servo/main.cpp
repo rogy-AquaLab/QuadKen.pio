@@ -1,13 +1,15 @@
 # include <ESP32Servo.h>
 # include <Arduino.h>
 
-constexpr int Pin1 = 14; // GPIO pin for the servo
-constexpr int Pin2 = 15; // GPIO pin for the servo
-constexpr int Pin3 = 16; // GPIO pin for the servo
+constexpr int Pin1 = 27; // GPIO pin for the servo
+constexpr int Pin2 = 32; // GPIO pin for the servo
+constexpr int Pin3 = 21; // GPIO pin for the servo
+constexpr int Pin4 = 19; // GPIO pin for the servo
 
 Servo servo1;
 Servo servo2;
 Servo servo3;
+Servo servo4;
 
 int input() {
   if (Serial.available() > 0) {
@@ -17,7 +19,7 @@ int input() {
       // 'c'が来たときの処理
       return 180; // 180度に回転
     } else if (input == 'd') {
-      // 'd'が来たときの処理
+      // 'd'が来たと0537きの処理
       return 0; // 0度に回転
     } else if (input == 's') {
       // 's'が来たときの処理
@@ -51,6 +53,8 @@ void setup() {
   servo2.attach(Pin2, 500, 2400);
   servo3.setPeriodHertz(50);// Standard 50hz servo
   servo3.attach(Pin3, 500, 2400);
+  servo4.setPeriodHertz(50);// Standard 50hz servo
+  servo4.attach(Pin4, 500, 2400);
 }
 
 void loop() {
@@ -69,8 +73,9 @@ void loop() {
   // Serial.print("val3: ");
   // Serial.println(val*2);
   servo1.write(val);
-  servo2.write(180-val);
-  servo3.write(val*2);
+  servo2.write(-val);
+  servo3.write(val);
+  servo4.write(-val);
   //   delay(500);
   // }
   delay(1000); // wait for a second 
