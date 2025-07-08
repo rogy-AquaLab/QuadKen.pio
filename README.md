@@ -1,16 +1,21 @@
 # QuadKen用platformIOプログラム
 - VsCodeの一番下のバーにあるenv:default(QuadKen.pio)から実行ファイルを切り替え
-- examplesの中のファイルはテストファイルなので適当に使ってOK
+- 今現在書き込んでいるファイルはexamples/ble/ の全部
+- pythonディレクトリにラズパイとPCのプログラムを保存
+- ディレクトリごとにREADMEを入れてる時がある。
 
-## [esp32dev(defalut)]
-- 実行ファイル：src/main.cpp
-- メイン書き込み
 
-## [Eservo]
-- 実行ファイル：examples/servo/main.cpp
-- servoテストファイル
+### platformio.ini
+- [esp32dev(defalut)]
+  - ビルドファイル：src/main.cpp
+  - メイン書き込み
 
-## [Ebldc]
-- 実行ファイル：examples/bldc/main.cpp
-- bldcテストファイル
+- [Eservo]
+  - ビルドファイル：examples/servo/main.cpp
+  - servoサンプルコード
 
+- [Ebldc]
+  - ビルドファイル：examples/bldc/main.cpp
+  - bldcサンプルコード
+
+etc..
