@@ -20,7 +20,7 @@ PORT = 5000
 tcp = Tcp(HOST, PORT)
 
 servo_data = DataManager(0x01, 8, DataType.UINT8)
-bno_data = DataManager(0x02, 3, DataType.UINT8)
+bno_data = DataManager(0x02, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 
@@ -45,12 +45,13 @@ async def main():
     data8 = [0] * 8
     controller.update()  # コントローラーの状態を更新
     angle , magnitude = controller.get_angle()
-    # print(f"角度: {angle:.2f}, 大きさ: {magnitude:.2f}")
+
     data8[0] = int(angle if angle > 0 else 0)  # 角度を整数に変換
+    # data8[0] = int(bno_data.get()[0])  # BNOの角度を取得
     data8[1] = int(magnitude * 100)  # 大きさを0-100の範囲に変換
     servo_data.update(data8)
     await asyncio.gather(
-        tcp.send(servo_data.identifier(), servo_data.pack()),
+        # tcp.send(servo_data.identifier(), servo_data.pack()),
         asyncio.sleep(0.1)  # 少し待つ
     )
 

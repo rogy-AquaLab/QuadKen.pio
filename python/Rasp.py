@@ -11,9 +11,9 @@ esp_task = None
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    # {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
+    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
     # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
-    {"num": 3, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
+    # {"num": 3, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
 ]
 esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
 
@@ -26,7 +26,7 @@ bno = Bno(True, 0x28)  # BNO055センサの初期化（クリスタルオシレ�
 
 # データ管理インスタンスの作成
 servo_data = DataManager(0x01, 8, DataType.UINT8)
-bno_data = DataManager(0x02, 3, DataType.UINT8)
+bno_data = DataManager(0x02, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 async def shutdown():
@@ -42,8 +42,10 @@ async def main():
     bno_euler = bno.euler()  # BNO055センサからの角度情報取得
     if bno_euler is not None:
         heading, roll, pitch = bno_euler
-        if 0 <= heading <= 360 and 0 <= roll <= 180 and -180 <= pitch <= 180:
-            bno_data.update([int(heading/2), int(roll/2), int(pitch/2 +90)])
+        print(f"🧭 角度情報: ヘディング={heading}° ロール={roll}° ピッチ={pitch}°")
+        if 0 <= heading <= 360 and -180 <= roll <= 180 and -180 <= pitch <= 180:
+            heading = heading if heading <= 180 else heading - 360  # ヘディングを-180〜180に変換
+            bno_data.update([int(heading/2), int(roll/2), int(pitch/2)])
             # PCにデータを送信
             await tcp.send(bno_data.identifier(), bno_data.pack())
     else:
@@ -141,8 +143,8 @@ async def Hsend_image_PC():
             picam.close()
             print("📷 カメラ停止")
 
-        print("⏳ カメラ再接続待機中（5秒）...")
-        await asyncio.sleep(5)
+        print("⏳ カメラ再接続待機中（500秒）...")
+        await asyncio.sleep(500)
 
 async def Hto_PC(addr):
     # PCとの接続待機
