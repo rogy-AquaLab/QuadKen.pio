@@ -1,12 +1,14 @@
 import sys
 import os
-
+import asyncio
 # tools/ のパスを追加
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import tkinter as tk
 import math
 from tools.controller import Controller , Button
+
+# https://qiita.com/Ignoringexceptions/items/ff0192fe0f54a1ffd99a
 
 # 初期化
 try:
@@ -104,34 +106,69 @@ class StatusAndAngleApp:
 # ------------------------------
 # テスト用コード（ランダム更新）
 # ------------------------------
-def main():
+# def main():
+    # if controller.pushed_button(Button.START):  # Aボタン
+    #     app.set_status(1, True)
+    #     root.after(10, main)  # 100msごとに更新
+    #     return
+    # elif controller.pushed_button(Button.HOME):  # Bボタン
+    #     app.set_status(1, False)
+    #     root.after(10, main)  # 100msごとに更新
+    #     return
+    # if controller.pushed_button(Button.SELECT):  # Bボタン
+    #     for i in range(3):
+    #         app.set_status(i, random.choice([True, False]))
+    #     root.after(10, main)  # 100msごとに更新
+    #     return
+
+    # # スティックの値を取得（例：左スティックX/Y軸）
+    # controller.update()  # コントローラーの状態を更新
+    # angle , magnitude = controller.get_angle()
+    # print(f"角度: {angle:.2f}, 大きさ: {magnitude:.2f}")
+    # app.set_angle(int(180-angle if angle > 0 else 0))  # 角度を整数に変換
+    # root.after(10, main)  # 100msごとに更新
+
+import random
+loopo = asyncio.new_event_loop()
+
+async def loop(app: StatusAndAngleApp):
+    print("🕹️ コントローラーの状態を更新中...")
     if controller.pushed_button(Button.START):  # Aボタン
         app.set_status(1, True)
-        root.after(10, main)  # 100msごとに更新
         return
     elif controller.pushed_button(Button.HOME):  # Bボタン
         app.set_status(1, False)
-        root.after(10, main)  # 100msごとに更新
         return
     if controller.pushed_button(Button.SELECT):  # Bボタン
         for i in range(3):
             app.set_status(i, random.choice([True, False]))
-        root.after(10, main)  # 100msごとに更新
         return
-
     # スティックの値を取得（例：左スティックX/Y軸）
     controller.update()  # コントローラーの状態を更新
     angle , magnitude = controller.get_angle()
     print(f"角度: {angle:.2f}, 大きさ: {magnitude:.2f}")
     app.set_angle(int(180-angle if angle > 0 else 0))  # 角度を整数に変換
-    root.after(10, main)  # 100msごとに更新
+    await asyncio.sleep(1)  # 少し待つ
 
 
+def gui(root: tk.Tk,app: StatusAndAngleApp):
+    """GUIのメインループ"""
+    loopo.create_task(loop(app))  # 非同期ループを開始
+    loopo.call_soon(loopo.stop)
+    loopo.run_forever()  # execute one cycle only
+    print("a")
+    root.after(100, gui, root,app)  # 100msごとに更新
 
-if __name__ == "__main__":
-    import random
+def main():
+    if __name__ == "__main__":
 
-    root = tk.Tk()
-    app = StatusAndAngleApp(root)
-    root.after(500, main)  # 500ms後に最初の更新を開始
-    root.mainloop()
+        root = tk.Tk()
+        app = StatusAndAngleApp(root)
+        try:
+            root.after(10, gui,root,app)  # 100msごとに更新
+            root.mainloop()  # tkinterのメインループを開始
+        except KeyboardInterrupt:
+            print("🛑 プログラムを終了します")
+        finally:
+            print("✅ プログラム終了")
+main()
