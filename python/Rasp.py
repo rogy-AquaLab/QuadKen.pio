@@ -11,9 +11,9 @@ esp_task = None
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
-    # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
-    # {"num": 3, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-1234567890cd"},
+    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"}, #正方形
+    {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #角なし
+    # {"num": 3, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789003"},
 ]
 esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
 
@@ -22,35 +22,61 @@ PORT = 5000
 
 tcp = Tcp(HOST, PORT)
 
-bno = Bno(True, 0x28)  # BNO055センサの初期化（クリスタルオシレータ使用、デフォルトアドレス0x28）
+bno = Bno(True, 0x28)  # BNO055センサのインスタンス作成（クリスタルオシレータ使用、デフォルトアドレス0x28）
 
 # データ管理インスタンスの作成
-servo_data = DataManager(0x01, 8, DataType.UINT8)
+servo_data = DataManager(0x01, 16, DataType.UINT8)
+bldc_data = DataManager(0x03, 4, DataType.INT8)
 bno_data = DataManager(0x02, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 async def shutdown():
     print("🧹 シャットダウン処理中...")
+    
+    # ESP32デバイスとの切断
     for esp in esps:
         await esp.disconnect()
         print(f"❌ 切断: {esp}")
+    
+    # BNO055センサとの切断
+    if bno.is_connected():
+        bno.disconnect()
+    
+    # TCP接続の切断
     await tcp.close()
     print("✅ シャットダウン完了")
     exit(0)
 
 async def main():
-    bno_euler = bno.euler()  # BNO055センサからの角度情報取得
-    if bno_euler is not None:
-        heading, roll, pitch = bno_euler
-        print(f"🧭 角度情報: ヘディング={heading}° ロール={roll}° ピッチ={pitch}°")
-        if 0 <= heading <= 360 and -180 <= roll <= 180 and -180 <= pitch <= 180:
-            heading = heading if heading <= 180 else heading - 360  # ヘディングを-180〜180に変換
-            bno_data.update([int(heading/2), int(roll/2), int(pitch/2)])
-            # PCにデータを送信
-            await tcp.send(bno_data.identifier(), bno_data.pack())
-    else:
-        print("⚠️ BNO055センサからの角度情報が取得できません")
-    await asyncio.sleep(0.1)  # 少し待つ
+    # BNO055センサの接続確保（失敗しても続行）
+    if not bno.ensure_connected():
+        await asyncio.sleep(1)  # 少し待つ
+        return
+        # print("⚠️ BNO055センサ接続エラー: センサーなしで続行します")
+    
+    # BNO055センサからの角度情報取得
+    if bno.is_connected():
+        try:
+            bno_euler = bno.euler()  # BNO055センサからの角度情報取得
+            if bno_euler is not None:
+                heading, roll, pitch = bno_euler
+                print(f"🧭 角度情報: ヘディング={heading}° ロール={roll}° ピッチ={pitch}°")
+                if 0 <= heading <= 360 and -180 <= roll <= 180 and -180 <= pitch <= 180:
+                    heading = heading if heading <= 180 else heading - 360  # ヘディングを-180〜180に変換
+                    bno_data.update([int(heading/2), int(roll/2), int(pitch/2)])
+                    # PCにデータを送信
+                    await tcp.send(bno_data.identifier(), bno_data.pack())
+            else:
+                print("⚠️ BNO055センサからの角度情報が取得できません")
+                
+        except RuntimeError as e:
+            print(f"❌ BNO055センサ通信エラー: {e}")
+        except ValueError as e:
+            print(f"⚠️ BNO055センサデータエラー: {e}")
+        except Exception as e:
+            print(f"⚠️ BNO055センサ予期しないエラー: {e}")
+        
+    await asyncio.sleep(1)  # 少し待つ
 
 # 通知を受け取ったときのコールバック
 def Hreceive_ESP(device_num , identifier, data):
@@ -105,15 +131,26 @@ async def Hreceive_PC():
 
         received_data = DataManager.unpack(identifier, data)
         print(f"📨 受信 from PC: {received_data}")
+        
         try:
-            # a = time.time()
-            # ESP32にデータを送信
-            await asyncio.gather(
-                *[esp.send(identifier, data) for esp in esps],
-                return_exceptions=True
-            )
-            # b = time.time()
-            # print(f"📤 ESP32に送信完了 (処理時間: {b-a}")
+            if identifier == servo_data.identifier():  # サーボデータの場合
+                # 16個のサーボデータを分割
+                # 最初の12個をESP2（ESP_power）へ送信
+                servo_data_esp2 = data[:12]  # 0-11番目のサーボ
+                # 残りの4個をESP1（ESP_up）へ送信  
+                servo_data_esp1 = data[12:16]  # 12-15番目のサーボ
+
+                # ESPにサーボデータを送信
+                await asyncio.gather(
+                    esps[1].send(servo_data.identifier(), servo_data_esp2),  # ESP2 (ESP_power) に12個のサーボデータを送信
+                    esps[0].send(servo_data.identifier(), servo_data_esp1)   # ESP1 (ESP_up) に4個のサーボデータを送信
+                )
+
+            elif identifier == bldc_data.identifier():  # BLDCデータの場合
+                # ESP2 (index 1) にBLDCデータを送信
+                if len(esps) > 1:
+                    await esps[1].send(identifier, data)
+            
         except ConnectionError as e:
             print(f"{e}")
             continue
