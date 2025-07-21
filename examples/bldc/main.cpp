@@ -4,8 +4,8 @@
 #include <ESP32Bldc.h>
 #include <Arduino.h>
 
-constexpr int Pin1 = 13; // GPIO pin for the servo
-constexpr int Pin2 = 14; // GPIO pin for the servo
+constexpr int Pin1 = 2; // GPIO pin for the servo
+constexpr int Pin2 = 4; // GPIO pin for the servo
 constexpr int Pin3 = 15; // GPIO pin for the servo
 
 BLDCMotor motor1;

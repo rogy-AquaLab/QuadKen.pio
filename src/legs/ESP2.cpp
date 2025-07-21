@@ -20,7 +20,7 @@ constexpr uint8_t BLDC_COUNT = 2;
 BLDCMotor bldcs[BLDC_COUNT];
 
 DataManager<uint8_t> servo_data(1, 12); // Identifier 1, length 12
-DataManager<int8_t> bldc_data(2, 2); // Identifier 2, length 4
+DataManager<uint8_t> bldc_data(2, 2); // Identifier 2, length 4
 
 constexpr const char* SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
 constexpr const char* CHARACTERISTIC_UUID = "abcd1234-5678-90ab-cdef-123456789002";
@@ -98,11 +98,10 @@ void setup() {
   // Attach all BLDC motors to their respective pins and configure
   for (uint8_t i = 0; i < BLDC_COUNT; i++) {
     bldcs[i].attach(bldc_pins[i]);
-    bldcs[i].config(50.0, 8, 0, 255); // 50Hz, 8-bit resolution, 0-255 range
-    bldcs[i].setPower(0.0); // Set initial power to 0%
   }
   
   ble.connect();
+  delay(1000); // Wait for BLE connection to stabilize
   Serial.println("✅ BLE servo & BLDC Test Ready");
 }
 

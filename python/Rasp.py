@@ -11,8 +11,8 @@ esp_task = None
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
     {"num": 1, "address": "78:42:1C:2E:0E:5E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"}, #正方形
-    # {"num": 1, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"},
-    {"num": 2, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #正方形
+    {"num": 2, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"},
+    # {"num": 2, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #正方形
     # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #角なし
 ]
 esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
@@ -26,8 +26,8 @@ bno = Bno(True, 0x28)  # BNO055センサのインスタンス作成（クリス�
 
 # データ管理インスタンスの作成
 servo_data = DataManager(0x01, 16, DataType.UINT8)
-bldc_data = DataManager(0x03, 4, DataType.INT8)
-bno_data = DataManager(0x02, 3, DataType.INT8)
+bldc_data = DataManager(0x02, 2, DataType.INT8)
+bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 async def shutdown():
@@ -143,7 +143,8 @@ async def Hreceive_PC():
                 # ESPにサーボデータを送信
                 await asyncio.gather(
                     esps[1].send(servo_data.identifier(), servo_data_esp2),  # ESP2 (ESP_power) に12個のサーボデータを送信
-                    esps[0].send(servo_data.identifier(), servo_data_esp1)   # ESP1 (ESP_up) に4個のサーボデータを送信
+                    esps[0].send(servo_data.identifier(), servo_data_esp1),  # ESP1 (ESP_up) に4個のサーボデータを送信
+                    asyncio.sleep(0.01)  # 少し待機してから次の処理へ
                 )
 
             elif identifier == bldc_data.identifier():  # BLDCデータの場合

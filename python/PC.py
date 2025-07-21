@@ -20,10 +20,11 @@ PORT = 5000
 tcp = Tcp(HOST, PORT)
 
 servo_data = DataManager(0x01, 16, DataType.UINT8)
-bldc_data = DataManager(0x03, 4, DataType.INT8)
-bno_data = DataManager(0x02, 3, DataType.INT8)
+bldc_data = DataManager(0x02, 2, DataType.INT8)
+bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
+bldc_values = [0, 0]  # BLDCモーターのデータ（4つの値を持つ）
 
 async def main():
     if controller.pushed_button(Button.START):  # Aボタン
@@ -54,33 +55,33 @@ async def main():
     # 左スティックでサーボを制御
     servo_values[0] = val  # 角度に基づくサーボ制御
     servo_values[1] = max(0, min(180, int(magnitude * 180)))   # 大きさに基づくサーボ制御
-    for i in range(2, 16):
-        servo_values[i] =val
-    
-    
-    # 他のボタンでサーボを制御
-    if controller.pushed_button(Button.A):
-        servo_values[2] = 0    # Aボタンで3番目のサーボを0度
-    if controller.pushed_button(Button.B):
-        servo_values[2] = 180  # Bボタンで3番目のサーボを180度
-    if controller.pushed_button(Button.X):
-        servo_values[3] = 45   # Xボタンで4番目のサーボを45度
-    if controller.pushed_button(Button.Y):
-        servo_values[3] = 135  # Yボタンで4番目のサーボを135度
-    
-    # BLDCモーターデータの設定（4個のBLDCモーター、-127~127の範囲）
-    bldc_values = [0] * 4  # 停止状態で初期化
+    for i in range(2, 12):
+        servo_values[i] = val
+
+
     
     # 方向パッドでBLDCモーターを制御
-    # if controller.pushed_button(Button.UP):
-    #     bldc_values[0] = 100    # 前進
-    # if controller.pushed_button(Button.DOWN):
-    #     bldc_values[0] = -100   # 後退
-    # if controller.pushed_button(Button.LEFT):
-    #     bldc_values[1] = -80    # 左回転
-    # if controller.pushed_button(Button.RIGHT):
-    #     bldc_values[1] = 80     # 右回転
-    
+    if controller.pushed_button(Button.A):
+        bldc_values[0] = 70    # 前進
+        bldc_values[1] = 70    # 前進
+        bldc_data.update(bldc_values)
+        await tcp.send(bldc_data.identifier(), bldc_data.pack())
+    if controller.pushed_button(Button.B):
+        bldc_values[0] = 50   # 後退
+        bldc_values[1] = 50   # 後退
+        bldc_data.update(bldc_values)
+        await tcp.send(bldc_data.identifier(), bldc_data.pack())
+    if controller.pushed_button(Button.X):
+        bldc_values[0] = 30    # 左回転
+        bldc_values[1] = 30    # 左回転
+        bldc_data.update(bldc_values)
+        await tcp.send(bldc_data.identifier(), bldc_data.pack())
+    if controller.pushed_button(Button.Y):
+        bldc_values[0] = 0     # 右回転
+        bldc_values[1] = 0     # 右回転
+        bldc_data.update(bldc_values)
+        await tcp.send(bldc_data.identifier(), bldc_data.pack())
+
     # 右スティックでBLDCモーターの細かい制御
     # 仮に右スティックのメソッドがあると仮定（実装に応じて調整）
     # right_angle, right_magnitude = controller.get_right_angle()  # もしあれば
@@ -89,11 +90,9 @@ async def main():
     
     # データを更新して送信
     servo_data.update(servo_values)
-    bldc_data.update(bldc_values)
     
     await asyncio.gather(
         tcp.send(servo_data.identifier(), servo_data.pack()),
-        # tcp.send(bldc_data.identifier(), bldc_data.pack()),
         asyncio.sleep(0.1)  # 少し待つ
     )
 
