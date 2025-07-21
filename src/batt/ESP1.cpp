@@ -21,7 +21,7 @@ constexpr const char *CHARACTERISTIC_UUID = "abcd1234-5678-90ab-cdef-12345678900
 
 // receiveCallback関数は後で定義
 void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data);
-BLE ble("ESP32-BLE-Servo4", 
+BLE ble("ESP32-BLE-Servo1", 
         SERVICE_UUID, 
         CHARACTERISTIC_UUID,
         receiveCallback
@@ -65,7 +65,7 @@ void setup() {
   }
   
   ble.connect();
-  Serial.println("✅ BLE 4-Servo Test Ready");
+  Serial.println("✅ BLE 1-Servo Test Ready");
 }
 
 

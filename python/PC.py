@@ -50,10 +50,13 @@ async def main():
     
     # サーボデータの設定（16個のサーボ）
     servo_values = [90] * 16  # デフォルト位置で初期化
-    
+    val = max(0, min(180, int(90 + angle * 0.5)))
     # 左スティックでサーボを制御
-    servo_values[0] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
+    servo_values[0] = val  # 角度に基づくサーボ制御
     servo_values[1] = max(0, min(180, int(magnitude * 180)))   # 大きさに基づくサーボ制御
+    for i in range(2, 16):
+        servo_values[i] =val
+    
     
     # 他のボタンでサーボを制御
     if controller.pushed_button(Button.A):
@@ -69,14 +72,14 @@ async def main():
     bldc_values = [0] * 4  # 停止状態で初期化
     
     # 方向パッドでBLDCモーターを制御
-    if controller.pushed_button(Button.UP):
-        bldc_values[0] = 100    # 前進
-    if controller.pushed_button(Button.DOWN):
-        bldc_values[0] = -100   # 後退
-    if controller.pushed_button(Button.LEFT):
-        bldc_values[1] = -80    # 左回転
-    if controller.pushed_button(Button.RIGHT):
-        bldc_values[1] = 80     # 右回転
+    # if controller.pushed_button(Button.UP):
+    #     bldc_values[0] = 100    # 前進
+    # if controller.pushed_button(Button.DOWN):
+    #     bldc_values[0] = -100   # 後退
+    # if controller.pushed_button(Button.LEFT):
+    #     bldc_values[1] = -80    # 左回転
+    # if controller.pushed_button(Button.RIGHT):
+    #     bldc_values[1] = 80     # 右回転
     
     # 右スティックでBLDCモーターの細かい制御
     # 仮に右スティックのメソッドがあると仮定（実装に応じて調整）
