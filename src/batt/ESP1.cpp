@@ -97,7 +97,7 @@ void setup() {
 
   // 初期状態ではサーボのセットアップは行わない
   // configメッセージを待つ
-  
+  setupServos();
   ble.connect();
   Serial.println("✅ BLE接続準備完了 - configメッセージを待機中...");
 }

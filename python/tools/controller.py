@@ -23,17 +23,17 @@ from enum import IntEnum
 #     L2 = 15
 #     R2 = 16
 
-class Button(IntEnum):
-    A = 1
-    B = 2
-    X = 0
-    Y = 3
-    L1 = 4
-    R1 = 5
-    SELECT = 8
-    START = 9  # 左スティック押し込み
-    L_STICK = 10  # 右スティック押し込み
-    R_STICK = 11
+# class Button(IntEnum):
+#     A = 1
+#     B = 2
+#     X = 0
+#     Y = 3
+#     L1 = 4
+#     R1 = 5
+#     SELECT = 8
+#     START = 9  # 左スティック押し込み
+#     L_STICK = 10  # 右スティック押し込み
+#     R_STICK = 11
 #     HOME = 12 # 以下なし
 #     UP = 13 
 #     DOWN = 14
@@ -42,6 +42,18 @@ class Button(IntEnum):
 #     L2 = 6  
 #     R2 = 7  
 
+class Button(IntEnum):  # PS4コントローラー
+    A = 0
+    B = 1
+    X = 2
+    Y = 3
+    L1 = 4
+    R1 = 5
+    SELECT = 6
+    START = 7
+    L_STICK = 8  # 左スティック押し込み
+    R_STICK = 9  # 右スティック押し込み
+    HOME = 10  # ホームボタン
 
 class Controller:
     def __init__(self, joystick_id=0):

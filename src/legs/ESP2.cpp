@@ -147,6 +147,7 @@ void setup() {
   // 初期状態ではサーボとBLDCのセットアップは行わない
   // configメッセージを待つ
   
+  setupAll();
   ble.connect();
   delay(1000); // Wait for BLE connection to stabilize
   Serial.println("✅ BLE接続準備完了 - configメッセージを待機中...");

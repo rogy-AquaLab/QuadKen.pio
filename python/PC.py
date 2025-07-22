@@ -20,26 +20,52 @@ PORT = 5000
 tcp = Tcp(HOST, PORT)
 
 servo_data = DataManager(0x01, 16, DataType.UINT8)
-bldc_data = DataManager(0x02, 2, DataType.INT8)
+bldc_data = DataManager(0x02, 2, DataType.UINT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
-bldc_values = [0, 0]  # BLDCモーターのデータ（4つの値を持つ）
 
 async def main():
-    if controller.pushed_button(Button.START):  # Aボタン
+    if controller.pushed_button(Button.START):  # STARTボタン
         config.update([1]) # ESPとの接続開始
         await asyncio.gather(
             tcp.send(config.identifier(), config.pack()),
             asyncio.sleep(0.1))  # 少し待つ
         return
-    # elif controller.pushed_button(Button.HOME):  # Bボタン
-    #     config.update([0]) 
-    #     await asyncio.gather(
-    #         tcp.send(config.identifier(), config.pack()),
-    #         asyncio.sleep(0.1))  # 少し待つ
-    #     return
-    if controller.pushed_button(Button.SELECT):  # Bボタン
+    
+    if controller.pushed_button(Button.L1):  # L1ボタン
+        config.update([2])  # ESPセットアップコマンド
+        await asyncio.gather(
+            tcp.send(config.identifier(), config.pack()),
+            asyncio.sleep(0.1))  # 少し待つ
+        return
+    
+    if controller.pushed_button(Button.A):  # Aボタン
+        bldc_data.update([20, 20])  # BLDCモーターを起動
+        await asyncio.gather(
+            tcp.send(bldc_data.identifier(), bldc_data.pack()),
+            asyncio.sleep(0.1))  # 少し待つ
+        return
+    elif controller.pushed_button(Button.B):  # Bボタン
+        bldc_data.update([128, 128])
+        await asyncio.gather(
+            tcp.send(bldc_data.identifier(), bldc_data.pack()),
+            asyncio.sleep(0.1))  # 少し待つ
+        return
+    elif controller.pushed_button(Button.X):  # Xボタン
+        bldc_data.update([80,80])  # BLDCモーターを停止
+        await asyncio.gather(
+            tcp.send(bldc_data.identifier(), bldc_data.pack()),
+            asyncio.sleep(0.1))  # 少し待つ
+        return
+    elif controller.pushed_button(Button.Y):  # Yボタン
+        bldc_data.update([180, 180])  # BLDCモーターを逆回転
+        await asyncio.gather(
+            tcp.send(bldc_data.identifier(), bldc_data.pack()),
+            asyncio.sleep(0.1))  # 少し待つ
+        return
+
+    if controller.pushed_button(Button.SELECT):  # SELECTボタン
         raise EOFError("ユーザーがSelectボタンで終了")  # 明示的に終了を伝える
 
 
@@ -51,42 +77,12 @@ async def main():
     
     # サーボデータの設定（16個のサーボ）
     servo_values = [90] * 16  # デフォルト位置で初期化
-    val = max(0, min(180, int(90 + angle * 0.5)))
-    # 左スティックでサーボを制御
-    servo_values[0] = val  # 角度に基づくサーボ制御
-    servo_values[1] = max(0, min(180, int(magnitude * 180)))   # 大きさに基づくサーボ制御
-    for i in range(2, 12):
-        servo_values[i] = val
-
-
     
-    # 方向パッドでBLDCモーターを制御
-    if controller.pushed_button(Button.A):
-        bldc_values[0] = 70    # 前進
-        bldc_values[1] = 70    # 前進
-        bldc_data.update(bldc_values)
-        await tcp.send(bldc_data.identifier(), bldc_data.pack())
-    if controller.pushed_button(Button.B):
-        bldc_values[0] = 50   # 後退
-        bldc_values[1] = 50   # 後退
-        bldc_data.update(bldc_values)
-        await tcp.send(bldc_data.identifier(), bldc_data.pack())
-    if controller.pushed_button(Button.X):
-        bldc_values[0] = 30    # 左回転
-        bldc_values[1] = 30    # 左回転
-        bldc_data.update(bldc_values)
-        await tcp.send(bldc_data.identifier(), bldc_data.pack())
-    if controller.pushed_button(Button.Y):
-        bldc_values[0] = 0     # 右回転
-        bldc_values[1] = 0     # 右回転
-        bldc_data.update(bldc_values)
-        await tcp.send(bldc_data.identifier(), bldc_data.pack())
-
-    # 右スティックでBLDCモーターの細かい制御
-    # 仮に右スティックのメソッドがあると仮定（実装に応じて調整）
-    # right_angle, right_magnitude = controller.get_right_angle()  # もしあれば
-    # bldc_values[2] = max(-127, min(127, int(right_angle * 0.7)))
-    # bldc_values[3] = max(-127, min(127, int(right_magnitude * 127)))
+    # 左スティックでサーボを制御
+    for i in range(12):
+        servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
+    
+    
     
     # データを更新して送信
     servo_data.update(servo_values)

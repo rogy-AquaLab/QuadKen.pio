@@ -138,6 +138,19 @@ async def Hreceive_PC():
                 except Exception as e:
                     print(f"⚠️ セットアップコマンド送信エラー: {e}")
                 continue
+            if data[0] == 2:  # L1ボタンでのセットアップ要求
+                try:
+                    config.update([1])  # セットアップコマンド
+                    setup_data = config.pack()
+                    # 両方のESPにセットアップコマンドを送信
+                    await asyncio.gather(
+                        esps[0].send(config.identifier(), setup_data),  # ESP1
+                        esps[1].send(config.identifier(), setup_data),  # ESP2
+                    )
+                    print("✅ L1ボタンによりESP両方にセットアップコマンドを送信しました")
+                except Exception as e:
+                    print(f"⚠️ L1セットアップコマンド送信エラー: {e}")
+                continue
             if data[0] == 0:  # 終了要求
                 await shutdown()
                 return
