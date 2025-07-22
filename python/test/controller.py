@@ -18,12 +18,15 @@ print(f"接続中のジョイスティック: {joystick.get_name()}")
 while True:
     pygame.event.pump()
 
-    # スティックの値を取得（例：左スティックX/Y軸）
-    axis_x = joystick.get_axis(1)
-    axis_y = joystick.get_axis(0)
+    # 全ての軸の値を取得
+    axes = []
+    for axis_index in range(joystick.get_numaxes()):
+        axis_value = joystick.get_axis(axis_index)
+        axes.append(axis_value)
 
-    # スティックの状態を表示
-    print(f"スティック: X={axis_x:.2f}, Y={axis_y:.2f}")
+    # 全ての軸の状態を表示
+    axes_str = ", ".join([f"軸{i}={axes[i]:.2f}" for i in range(len(axes))])
+    print(f"全スティック: {axes_str}")
 
     # ボタンが押されたかを確認（例：全ボタンを確認）
     for button_index in range(joystick.get_numbuttons()):

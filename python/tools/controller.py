@@ -4,24 +4,45 @@ import pygame
 import math
 from enum import IntEnum
 
-class Button(IntEnum):
+# class Button(IntEnum): # プロコン
+#     A = 0
+#     B = 1
+#     X = 2
+#     Y = 3
+#     SELECT = 4
+#     HOME = 5
+#     START = 6
+#     L_STICK = 7 # 左スティック押し込み
+#     R_STICK = 8 # 右スティック押し込み
+#     L1 = 9
+#     R1 = 10
+#     UP = 11
+#     DOWN = 12
+#     LEFT = 13
+#     RIGHT = 14
+#     L2 = 15
+#     R2 = 16
+
+class Button(IntEnum):  # PS4コントローラー
     A = 0
     B = 1
     X = 2
     Y = 3
-    SELECT = 4
-    HOME = 5
-    START = 6
-    L_STICK = 7 # 左スティック押し込み
-    R_STICK = 8 # 右スティック押し込み
-    L1 = 9
-    R1 = 10
-    UP = 11
-    DOWN = 12
-    LEFT = 13
-    RIGHT = 14
-    L2 = 15
-    R2 = 16
+    L1 = 4
+    R1 = 5
+    SELECT = 6
+    START = 7
+    L_STICK = 8  # 左スティック押し込み
+    R_STICK = 9  # 右スティック押し込み
+    HOME = 10  # ホームボタン
+"""アナログ
+左スティック X軸: 0
+左スティック Y軸: 1
+右スティック X軸: 2
+右スティック Y軸: 3
+L2: 4  # アナログ入力
+R2: 5  # アナログ入力
+"""
 
 # class Button(IntEnum):
 #     A = 1
@@ -34,14 +55,14 @@ class Button(IntEnum):
 #     START = 9  # 左スティック押し込み
 #     L_STICK = 10  # 右スティック押し込み
 #     R_STICK = 11
-#     HOME = 12 # 以下なし
-#     UP = 13 
-#     DOWN = 14
-#     LEFT = 15
-#     RIGHT = 16
 #     L2 = 6  
 #     R2 = 7  
-
+"""アナログ
+左十字キー X軸: 0
+左十字キー Y軸: 1
+右スティック X軸: 2
+右スティック Y軸: 3
+"""
 
 class Controller:
     def __init__(self, joystick_id=0):
