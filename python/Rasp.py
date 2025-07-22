@@ -124,6 +124,19 @@ async def Hreceive_PC():
             if data[0] == 1:  # 接続要求
                 esp_task.cancel() if esp_task else None  # 既存のタスクをキャンセル
                 esp_task = asyncio.create_task(Hto_ESP())
+                # ESP接続後にセットアップコマンドを送信
+                await asyncio.sleep(2)  # ESP接続の安定化を待つ
+                try:
+                    config.update([1])  # セットアップコマンド
+                    setup_data = config.pack()
+                    # 両方のESPにセットアップコマンドを送信
+                    await asyncio.gather(
+                        esps[0].send(config.identifier(), setup_data),  # ESP1
+                        esps[1].send(config.identifier(), setup_data),  # ESP2
+                    )
+                    print("✅ ESP両方にセットアップコマンドを送信しました")
+                except Exception as e:
+                    print(f"⚠️ セットアップコマンド送信エラー: {e}")
                 continue
             if data[0] == 0:  # 終了要求
                 await shutdown()
