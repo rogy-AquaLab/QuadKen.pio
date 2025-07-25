@@ -30,6 +30,7 @@ bleak , opencv-python , Picamera2
 - カメラは死んだ
 
 ## 今後
+- 自動でBLDCオフにす津
 - RaspでBNOを取得してPCに送信
 - PCで接続状態や機体の角度が一目見てわかるようにGUIを作成
 - カメラの蘇生

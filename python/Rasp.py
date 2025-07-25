@@ -1,5 +1,4 @@
 import asyncio
-import time
 from tools.tcp import Tcp
 from tools.data_manager import DataManager , DataType
 from tools.ble import Ble
@@ -11,9 +10,10 @@ esp_task = None
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"num": 1, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"}, #正方形
-    {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #角なし
-    # {"num": 3, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789003"},
+    {"num": 1, "address": "78:42:1C:2E:0E:5E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"}, #正方形
+    {"num": 2, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"},
+    # {"num": 2, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #正方形
+    # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #角なし
 ]
 esps = [Ble(device['num'], device['address'], device['char_uuid']) for device in devices]
 
@@ -26,8 +26,8 @@ bno = Bno(True, 0x28)  # BNO055センサのインスタンス作成（クリス�
 
 # データ管理インスタンスの作成
 servo_data = DataManager(0x01, 16, DataType.UINT8)
-bldc_data = DataManager(0x03, 4, DataType.INT8)
-bno_data = DataManager(0x02, 3, DataType.INT8)
+bldc_data = DataManager(0x02, 2, DataType.INT8)
+bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
 async def shutdown():
@@ -124,6 +124,32 @@ async def Hreceive_PC():
             if data[0] == 1:  # 接続要求
                 esp_task.cancel() if esp_task else None  # 既存のタスクをキャンセル
                 esp_task = asyncio.create_task(Hto_ESP())
+                # ESP接続後にセットアップコマンドを送信
+                await asyncio.sleep(2)  # ESP接続の安定化を待つ
+                try:
+                    config.update([1])  # セットアップコマンド
+                    setup_data = config.pack()
+                    # 両方のESPにセットアップコマンドを送信
+                    await asyncio.gather(
+                        esps[0].send(config.identifier(), setup_data),  # ESP1
+                        esps[1].send(config.identifier(), setup_data),  # ESP2
+                    )
+                    print("✅ ESP両方にセットアップコマンドを送信しました")
+                except Exception as e:
+                    print(f"⚠️ セットアップコマンド送信エラー: {e}")
+                continue
+            if data[0] == 2:  # L1ボタンでのセットアップ要求
+                try:
+                    config.update([1])  # セットアップコマンド
+                    setup_data = config.pack()
+                    # 両方のESPにセットアップコマンドを送信
+                    await asyncio.gather(
+                        esps[0].send(config.identifier(), setup_data),  # ESP1
+                        esps[1].send(config.identifier(), setup_data),  # ESP2
+                    )
+                    print("✅ L1ボタンによりESP両方にセットアップコマンドを送信しました")
+                except Exception as e:
+                    print(f"⚠️ L1セットアップコマンド送信エラー: {e}")
                 continue
             if data[0] == 0:  # 終了要求
                 await shutdown()
@@ -143,7 +169,8 @@ async def Hreceive_PC():
                 # ESPにサーボデータを送信
                 await asyncio.gather(
                     esps[1].send(servo_data.identifier(), servo_data_esp2),  # ESP2 (ESP_power) に12個のサーボデータを送信
-                    esps[0].send(servo_data.identifier(), servo_data_esp1)   # ESP1 (ESP_up) に4個のサーボデータを送信
+                    esps[0].send(servo_data.identifier(), servo_data_esp1),  # ESP1 (ESP_up) に4個のサーボデータを送信
+                    asyncio.sleep(0.01)  # 少し待機してから次の処理へ
                 )
 
             elif identifier == bldc_data.identifier():  # BLDCデータの場合

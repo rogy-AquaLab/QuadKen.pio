@@ -1,14 +1,14 @@
 import time
 from tools.bno import Bno
 
-bno = Bno(use_crystal=True , address=0x29)  # BNO055センサの初期化
-
+bno = Bno(use_crystal=True , address=0x28)  # BNO055センサの初期化
+bno.connect()  # センサに接続
 while True:
     try:
         euler = bno.euler()  # (heading, roll, pitch) = (ヨー, ロール, ピッチ)
         heading, roll, pitch = euler
         print(f"Heading (Yaw): {heading:.2f}°  Roll: {roll:.2f}°  Pitch: {pitch:.2f}°")
-    except ValueError as e:
+    except RuntimeError as e:
         print(e)
     time.sleep(0.1)  # 10Hz
 
