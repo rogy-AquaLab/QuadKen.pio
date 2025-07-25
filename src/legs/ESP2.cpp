@@ -4,8 +4,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "data_manager.cpp"
-#include "ble.cpp"
+#include "QuadKenBLE.h"
+#include "QuadKenDataManager.h"
 #include <ESP32Servo.h>
 #include "ESP32Bldc.h"
 
@@ -50,6 +50,10 @@ constexpr uint8_t bldc_pins[BLDC_COUNT] = {
 void setupServos();
 void setupBLDCMotors();
 void setupAll();
+void detachServos();
+void detachBLDCMotors();
+void detachAll();
+void onBLEDisconnected();
 
 
 // サーボのセットアップ関数
@@ -85,6 +89,45 @@ void setupAll() {
   setupBLDCMotors();
 }
 
+// サーボのdetach関数
+void detachServos() {
+  Serial.println("🔄 サーボをdetachしています...");
+  
+  for (uint8_t i = 0; i < SERVO_COUNT; i++) {
+    if (servos[i].attached()) {
+      servos[i].detach();
+      Serial.printf("サーボ%d (ピン%d) detach完了\n", i+1, servo_pins[i]);
+    }
+  }
+  
+  Serial.println("✅ 全サーボのdetach完了");
+}
+
+// BLDCモーターのdetach関数
+void detachBLDCMotors() {
+  Serial.println("🔄 BLDCモーターをdetachしています...");
+  
+  for (uint8_t i = 0; i < BLDC_COUNT; i++) {
+    bldcs[i].setPower(0); // まずパワーを0に設定
+    bldcs[i].detach();
+    Serial.printf("BLDCモーター%d (ピン%d) detach完了\n", i+1, bldc_pins[i]);
+  }
+  
+  Serial.println("✅ 全BLDCモーターのdetach完了");
+}
+
+// 全てのdetach関数
+void detachAll() {
+  detachServos();
+  detachBLDCMotors();
+}
+
+// BLE切断時の処理
+void onBLEDisconnected() {
+  Serial.println("🔴 BLE接続が切断されました - サーボとBLDCモーターをdetachします");
+  detachAll();
+}
+
 
 
 
@@ -116,8 +159,13 @@ void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data)
       if (config_command == 1) {
         // Setup command
         setupAll();
+      } else if (config_command == 3) {
+        // Config 3 command - サーボとBLDCモーター切断
+        Serial.println("📨 Config 3 command received - サーボとBLDCモーターを切断します");
+        detachAll();
       } else if (config_command == 0) {
         Serial.println("🛑 Shutdown command received");
+        detachAll();
       }
     }
   }
@@ -147,7 +195,10 @@ void setup() {
   // 初期状態ではサーボとBLDCのセットアップは行わない
   // configメッセージを待つ
   
-  setupAll();
+  
+  // BLE切断時のコールバックを設定
+  ble.setDisconnectCallback(onBLEDisconnected);
+  
   ble.connect();
   delay(1000); // Wait for BLE connection to stabilize
   Serial.println("✅ BLE接続準備完了 - configメッセージを待機中...");

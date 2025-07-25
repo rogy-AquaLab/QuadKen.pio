@@ -40,33 +40,15 @@ async def main():
             asyncio.sleep(0.1))  # 少し待つ
         return
     
-    if controller.pushed_button(Button.A):  # Aボタン
-        bldc_data.update([20, 20])  # BLDCモーターを起動
+    if controller.pushed_button(Button.R1):  # R1ボタン
+        config.update([3])  # ESP設定3コマンド
         await asyncio.gather(
-            tcp.send(bldc_data.identifier(), bldc_data.pack()),
+            tcp.send(config.identifier(), config.pack()),
             asyncio.sleep(0.1))  # 少し待つ
         return
-    elif controller.pushed_button(Button.B):  # Bボタン
-        bldc_data.update([128, 128])
-        await asyncio.gather(
-            tcp.send(bldc_data.identifier(), bldc_data.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
-        return
-    elif controller.pushed_button(Button.X):  # Xボタン
-        bldc_data.update([80,80])  # BLDCモーターを停止
-        await asyncio.gather(
-            tcp.send(bldc_data.identifier(), bldc_data.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
-        return
-    elif controller.pushed_button(Button.Y):  # Yボタン
-        bldc_data.update([180, 180])  # BLDCモーターを逆回転
-        await asyncio.gather(
-            tcp.send(bldc_data.identifier(), bldc_data.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
-        return
-
     if controller.pushed_button(Button.SELECT):  # SELECTボタン
         raise EOFError("ユーザーがSelectボタンで終了")  # 明示的に終了を伝える
+
 
 
     # コントローラーの状態を更新
@@ -74,21 +56,46 @@ async def main():
     
     # スティックの値を取得
     angle, magnitude = controller.get_angle()
-    
-    # サーボデータの設定（16個のサーボ）
-    servo_values = [90] * 16  # デフォルト位置で初期化
+
+    # サーボデータの設定（12個のサーボ）
+    servo_values = servo_data.get()  # デフォルト位置で初期化
     
     # 左スティックでサーボを制御
     for i in range(12):
         servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
     
+    # Lスティック押し込み状態を取得
+    l_stick_pressed = controller.is_button_pressed(Button.L_STICK)
     
+    # A、B、X、Yボタンでサーボ12～15番を制御
+    # Lスティック押し込み時：10度、非押し込み時：170度
+    target_angle_pressed = 10    # Lスティック押し込み時の角度
+    target_angle_released = 170  # Lスティック離し時の角度
+    
+    if controller.pushed_button(Button.A):  # Aボタンでサーボ12番制御
+        servo_values[12] = target_angle_pressed if l_stick_pressed else target_angle_released
+    
+    if controller.pushed_button(Button.B):  # Bボタンでサーボ13番制御
+        servo_values[13] = target_angle_pressed if l_stick_pressed else target_angle_released
+    
+    if controller.pushed_button(Button.X):  # Xボタンでサーボ14番制御
+        servo_values[14] = target_angle_pressed if l_stick_pressed else target_angle_released
+    
+    if controller.pushed_button(Button.Y):  # Yボタンでサーボ15番制御
+        servo_values[15] = target_angle_pressed if l_stick_pressed else target_angle_released
+    
+    # R2ボタンの押し込み量でBLDCモーターを制御（127.5～255の範囲）
+    r2_value = controller.r2_push()  # 0.0～1.0の値を取得
+    bldc_speed = int(127.5 - (r2_value * 127.5))  # 127.5～255の範囲に変換
+    bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
     
     # データを更新して送信
     servo_data.update(servo_values)
+    bldc_data.update(bldc_values)
     
     await asyncio.gather(
         tcp.send(servo_data.identifier(), servo_data.pack()),
+        tcp.send(bldc_data.identifier(), bldc_data.pack()),
         asyncio.sleep(0.1)  # 少し待つ
     )
 

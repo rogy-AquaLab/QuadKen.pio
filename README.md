@@ -5,7 +5,10 @@
 - ディレクトリごとにREADMEを入れてる時がある。
 
 ## 問題点
+- 書道setupもなくす
+- BNO反応してない
 - ESPのBLDC intでできない
+- ラズパイとのBLE、2つないとできない問題
 - setup 手動で
 - ble datamanager ライブラリ化
 - 有線接続の手順説明
