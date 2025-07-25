@@ -66,6 +66,10 @@ class Controller:
         self.joystick = pygame.joystick.Joystick(joystick_id)
         self.joystick.init()
 
+        # アナログ軸の数をチェック
+        if self.joystick.get_numaxes() < 6:
+            raise RuntimeError(f"コントローラーの設定エラー: アナログ軸が不足しています。必要: 6軸、検出: {self.joystick.get_numaxes()}軸")
+
         self.button_states = [False] * (self.joystick.get_numbuttons() + 2)  # L2, R2を含むため+2
 
     def update(self):
@@ -85,6 +89,17 @@ class Controller:
         angle = math.degrees(angle)  # ラジアンから度に変換
         return angle, magnitude
 
+    def r2_push(self) -> float:
+        """
+        R2ボタン（軸5）の押し込み具合を取得。
+        戻り値: 0.0（未押下）～ 1.0（最大押下）
+        """
+        raw_value = self.joystick.get_axis(5)
+        # 軸5の値を0~1の範囲に変換（通常-1~1の範囲なので正規化）
+        normalized_value = (raw_value + 1.0) / 2.0
+        # 0~1の範囲にクランプ
+        return max(0.0, min(1.0, normalized_value))
+
     def pushed_button(self, button_id: int) -> bool:
         """
         ボタンが「押され始めた」かどうかを検出。
@@ -98,3 +113,11 @@ class Controller:
         self.button_states[button_id] = current_state
 
         return current_state and not was_pressed
+
+    def is_button_pressed(self, button_id: int) -> bool:
+        """
+        ボタンが現在押されているかどうかを取得。
+        """
+        if button_id < 0 or button_id >= self.joystick.get_numbuttons():
+            raise ValueError(f"無効なボタンID: {button_id}")
+        return self.joystick.get_button(button_id)

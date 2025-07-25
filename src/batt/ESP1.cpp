@@ -4,8 +4,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "data_manager.cpp"
-#include "ble.cpp"
+#include "QuadKenBLE.h"
+#include "QuadKenDataManager.h"
 #include <ESP32Servo.h>
 
 using namespace Quadken;
@@ -33,6 +33,8 @@ constexpr uint8_t SERVO_PINS[SERVO_COUNT] = {14, 15, 16, 17};
 
 // セットアップ関数の宣言
 void setupServos();
+void detachServos();
+void onBLEDisconnected();
 
 
 // サーボのセットアップ関数
@@ -47,6 +49,26 @@ void setupServos() {
   }
   
   Serial.println("✅ サーボのセットアップ完了");
+}
+
+// サーボのdetach関数
+void detachServos() {
+  Serial.println("🔄 サーボをdetachしています...");
+  
+  for (int i = 0; i < SERVO_COUNT; i++) {
+    if (servos[i].attached()) {
+      servos[i].detach();
+      Serial.printf("サーボ%d (ピン%d) detach完了\n", i+1, SERVO_PINS[i]);
+    }
+  }
+  
+  Serial.println("✅ 全サーボのdetach完了");
+}
+
+// BLE切断時の処理
+void onBLEDisconnected() {
+  Serial.println("🔴 BLE接続が切断されました - サーボをdetachします");
+  detachServos();
 }
 
 
@@ -73,8 +95,13 @@ void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data)
       if (config_command == 1) {
         // Setup command
         setupServos();
+      } else if (config_command == 3) {
+        // Config 3 command - サーボ切断
+        Serial.println("📨 Config 3 command received - サーボを切断します");
+        detachServos();
       } else if (config_command == 0) {
         Serial.println("🛑 Shutdown command received");
+        detachServos();
       }
     }
   }
@@ -97,7 +124,10 @@ void setup() {
 
   // 初期状態ではサーボのセットアップは行わない
   // configメッセージを待つ
-  setupServos();
+  
+  // BLE切断時のコールバックを設定
+  ble.setDisconnectCallback(onBLEDisconnected);
+  
   ble.connect();
   Serial.println("✅ BLE接続準備完了 - configメッセージを待機中...");
 }

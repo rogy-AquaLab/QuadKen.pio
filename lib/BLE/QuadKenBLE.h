@@ -15,6 +15,7 @@ namespace Quadken {
 class BLE {
 public:
   using ReceiveCallback = std::function<void(const uint8_t, const std::vector<uint8_t>&)>;
+  using DisconnectCallback = std::function<void()>;
 
   BLE(const char* deviceName,
       const char* serviceUUID,
@@ -24,9 +25,14 @@ public:
       serviceUUID(serviceUUID),
       charUUID(charUUID),
       receiveCallback(cb),
+      disconnectCallback(nullptr),
       pCharacteristic(nullptr),
       pServer(nullptr),
       pAdvertising(nullptr) {}
+
+  void setDisconnectCallback(DisconnectCallback cb) {
+    disconnectCallback = cb;
+  }
 
   void connect() {
     BLEDevice::init(deviceName);
@@ -60,6 +66,10 @@ public:
     }
   }
 
+  bool isConnected() const {
+    return pServer && pServer->getConnectedCount() > 0;
+  }
+
 private:
   // 受信時の処理
   class InternalCallback : public BLECharacteristicCallbacks {
@@ -86,9 +96,17 @@ private:
   public:
     InternalServerCallbacks(BLE* wrapper) : wrapper(wrapper) {}
     void onConnect(BLEServer* server) override {
+      Serial.println("BLE Client connected");
     }
 
     void onDisconnect(BLEServer* server) override {
+      Serial.println("BLE Client disconnected");
+      
+      // 切断時のコールバックを実行
+      if (wrapper->disconnectCallback) {
+        wrapper->disconnectCallback();
+      }
+      
       delay(100); // 少し待ってから再アドバタイズ
       if (wrapper->pAdvertising) {
         wrapper->pAdvertising->start();
@@ -103,6 +121,7 @@ private:
   const char* serviceUUID;
   const char* charUUID;
   ReceiveCallback receiveCallback;
+  DisconnectCallback disconnectCallback;
   BLECharacteristic* pCharacteristic;
 
   BLEServer* pServer;

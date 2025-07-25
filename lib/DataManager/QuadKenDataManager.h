@@ -1,15 +1,11 @@
-#ifndef QUADKEN_DATA_H
-#define QUADKEN_DATA_H
+#ifndef QUADKEN_DATA_MANAGER_H
+#define QUADKEN_DATA_MANAGER_H
 
-
-// #include <iostream>
 #include <vector>
 #include <map>
 #include <stdexcept>
-// #include <cstdint>
 #include <cstring>
 #include <type_traits>
-#include <typeinfo>
 
 namespace Quadken {
 
@@ -82,9 +78,8 @@ private:
         }
         return it->second;
     }
-
 };
 
-}
+} // namespace Quadken
 
-#endif // QUADKEN_DATA_H
+#endif // QUADKEN_DATA_MANAGER_H

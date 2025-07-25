@@ -10,7 +10,7 @@ esp_task = None
 
 # ESP32デバイスのMACアドレス一覧（必要に応じて追加）
 devices = [
-    {"num": 1, "address": "78:42:1C:2E:0E:5E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"}, #正方形
+    {"num": 1, "address": "78:42:1C:2E:0E:5E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"},
     {"num": 2, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"},
     # {"num": 2, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #正方形
     # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #角なし
@@ -150,6 +150,19 @@ async def Hreceive_PC():
                     print("✅ L1ボタンによりESP両方にセットアップコマンドを送信しました")
                 except Exception as e:
                     print(f"⚠️ L1セットアップコマンド送信エラー: {e}")
+                continue
+            if data[0] == 3:  # R1ボタンでのconfig 3要求
+                try:
+                    config.update([3])  # config 3コマンド
+                    config3_data = config.pack()
+                    # 両方のESPにconfig 3コマンドを送信
+                    await asyncio.gather(
+                        esps[0].send(config.identifier(), config3_data),  # ESP1
+                        esps[1].send(config.identifier(), config3_data),  # ESP2
+                    )
+                    print("✅ R1ボタンによりESP両方にconfig 3コマンドを送信しました")
+                except Exception as e:
+                    print(f"⚠️ config 3コマンド送信エラー: {e}")
                 continue
             if data[0] == 0:  # 終了要求
                 await shutdown()
