@@ -5,17 +5,10 @@
 - ディレクトリごとにREADMEを入れてる時がある。
 
 ## 問題点
-- 書道setupもなくす
 - BNO反応してない
 - ESPのBLDC intでできない
+- PCのコード見ずらい
 - ラズパイとのBLE、2つないとできない問題
-- setup 手動で
-- ble datamanager ライブラリ化
-- 有線接続の手順説明
-- ラズパイのサーボの送信分割雑すぎ-> DataManager分けちゃう
-- バラストボタンで制御
-- 足とBLDCをアナログで
-
 
 ### platformio.ini
 - [esp32dev(defalut)]

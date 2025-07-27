@@ -19,7 +19,11 @@ PORT = 5000
 
 tcp = Tcp(HOST, PORT)
 
-servo_data = DataManager(0x01, 16, DataType.UINT8)
+
+# ESP1用サーボデータ（4個）とESP2用サーボデータ（12個）
+batt_servo_data = DataManager(0x11, 4, DataType.UINT8)  # ESP1用サーボ（4個）- 識別子0x11
+legs_servo_data = DataManager(0x12, 12, DataType.UINT8)  # ESP2用サーボ（12個）- 識別子0x12
+
 bldc_data = DataManager(0x02, 2, DataType.UINT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
@@ -57,44 +61,49 @@ async def main():
     # スティックの値を取得
     angle, magnitude = controller.get_angle()
 
-    # サーボデータの設定（12個のサーボ）
-    servo_values = servo_data.get()  # デフォルト位置で初期化
+    # 脚部サーボデータの設定（12個のサーボ - ESP2用）
+    legs_servo_values = legs_servo_data.get()  # デフォルト位置で初期化
     
-    # 左スティックでサーボを制御
+    # 左スティックで脚部サーボを制御
     for i in range(12):
-        servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
+        legs_servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
+    
+    # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
+    batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
     
     # Lスティック押し込み状態を取得
     l_stick_pressed = controller.is_button_pressed(Button.L_STICK)
     
-    # A、B、X、Yボタンでサーボ12～15番を制御
+    # A、B、X、Yボタンでバッテリー部サーボ（0～3番）を制御
     # Lスティック押し込み時：10度、非押し込み時：170度
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
     
-    if controller.pushed_button(Button.A):  # Aボタンでサーボ12番制御
-        servo_values[12] = target_angle_pressed if l_stick_pressed else target_angle_released
+    if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
+        batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
     
-    if controller.pushed_button(Button.B):  # Bボタンでサーボ13番制御
-        servo_values[13] = target_angle_pressed if l_stick_pressed else target_angle_released
+    if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
+        batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
     
-    if controller.pushed_button(Button.X):  # Xボタンでサーボ14番制御
-        servo_values[14] = target_angle_pressed if l_stick_pressed else target_angle_released
+    if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ2番制御
+        batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
     
-    if controller.pushed_button(Button.Y):  # Yボタンでサーボ15番制御
-        servo_values[15] = target_angle_pressed if l_stick_pressed else target_angle_released
+    if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
+        batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     # R2ボタンの押し込み量でBLDCモーターを制御（127.5～255の範囲）
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得
     bldc_speed = int(127.5 - (r2_value * 127.5))  # 127.5～255の範囲に変換
     bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
     
-    # データを更新して送信
-    servo_data.update(servo_values)
+    # データを更新
+    legs_servo_data.update(legs_servo_values)
+    batt_servo_data.update(batt_servo_values)
     bldc_data.update(bldc_values)
     
     await asyncio.gather(
-        tcp.send(servo_data.identifier(), servo_data.pack()),
+        tcp.send(batt_servo_data.identifier(), batt_servo_data.pack()),  # ESP1（4個のサーボ）
+        tcp.send(legs_servo_data.identifier(), legs_servo_data.pack()),  # ESP2（12個のサーボ）
         tcp.send(bldc_data.identifier(), bldc_data.pack()),
         asyncio.sleep(0.1)  # 少し待つ
     )
@@ -104,7 +113,7 @@ async def Hreceive_Rasp():
     while True:
         data_type, size, data = await tcp.receive()
 
-        if data_type == 0x00:
+        if data_type == Identifiers.CAMERA_IMAGE:
             img_array = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             cv2.imshow('Async TCP Stream', frame)

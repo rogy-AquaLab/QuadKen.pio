@@ -25,7 +25,8 @@ tcp = Tcp(HOST, PORT)
 bno = Bno(True, 0x28)  # BNO055センサのインスタンス作成（クリスタルオシレータ使用、デフォルトアドレス0x28）
 
 # データ管理インスタンスの作成
-servo_data = DataManager(0x01, 16, DataType.UINT8)
+esp1_servo_data = DataManager(0x11, 4, DataType.UINT8)   # ESP1用サーボ（4個）- 識別子0x11
+esp2_servo_data = DataManager(0x12, 12, DataType.UINT8)  # ESP2用サーボ（12個）- 識別子0x12
 bldc_data = DataManager(0x02, 2, DataType.INT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
@@ -172,19 +173,13 @@ async def Hreceive_PC():
         print(f"📨 受信 from PC: {received_data}")
         
         try:
-            if identifier == servo_data.identifier():  # サーボデータの場合
-                # 16個のサーボデータを分割
-                # 最初の12個をESP2（ESP_power）へ送信
-                servo_data_esp2 = data[:12]  # 0-11番目のサーボ
-                # 残りの4個をESP1（ESP_up）へ送信  
-                servo_data_esp1 = data[12:16]  # 12-15番目のサーボ
-
-                # ESPにサーボデータを送信
-                await asyncio.gather(
-                    esps[1].send(servo_data.identifier(), servo_data_esp2),  # ESP2 (ESP_power) に12個のサーボデータを送信
-                    esps[0].send(servo_data.identifier(), servo_data_esp1),  # ESP1 (ESP_up) に4個のサーボデータを送信
-                    asyncio.sleep(0.01)  # 少し待機してから次の処理へ
-                )
+            if identifier == esp1_servo_data.identifier():  # ESP1サーボデータの場合（4個）- 識別子0x11
+                # ESP1にサーボデータを送信（識別子を0x01に変換）
+                await esps[0].send(0x01, data)  # ESP1に4個のサーボデータを送信
+                
+            elif identifier == esp2_servo_data.identifier():  # ESP2サーボデータの場合（12個）- 識別子0x12
+                # ESP2にサーボデータを送信（識別子を0x01に変換）
+                await esps[1].send(0x01, data)  # ESP2に12個のサーボデータを送信
 
             elif identifier == bldc_data.identifier():  # BLDCデータの場合
                 # ESP2 (index 1) にBLDCデータを送信
