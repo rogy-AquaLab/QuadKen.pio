@@ -1,0 +1,5 @@
+tcp:
+  mode: debug  # 'production' または 'debug'
+  debug_options:
+    show_timestamp: true
+    show_colors: true

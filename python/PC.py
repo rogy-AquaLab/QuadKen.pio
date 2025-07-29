@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 # from simple_pid import PID
 # import matplotlib.pyplot as plt
-from tools.tcp import Tcp
+from tools.tcp import create_tcp
 from tools.data_manager import DataManager , DataType
 from tools.controller import Controller , Button
 
@@ -17,7 +17,7 @@ except RuntimeError as e:
 HOST = 'takapi.local'
 PORT = 5000
 
-tcp = Tcp(HOST, PORT)
+tcp = create_tcp(HOST, PORT)
 
 
 # ESP1用サーボデータ（4個）とESP2用サーボデータ（12個）
@@ -105,7 +105,7 @@ async def main():
         tcp.send(batt_servo_data.identifier(), batt_servo_data.pack()),  # ESP1（4個のサーボ）
         tcp.send(legs_servo_data.identifier(), legs_servo_data.pack()),  # ESP2（12個のサーボ）
         tcp.send(bldc_data.identifier(), bldc_data.pack()),
-        asyncio.sleep(0.1)  # 少し待つ
+        asyncio.sleep(1)  # 少し待つ
     )
 
 
@@ -113,7 +113,7 @@ async def Hreceive_Rasp():
     while True:
         data_type, size, data = await tcp.receive()
 
-        if data_type == Identifiers.CAMERA_IMAGE:
+        if data_type == 0x00:  # 画像デー
             img_array = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             cv2.imshow('Async TCP Stream', frame)

@@ -1,130 +1,73 @@
 #include <Arduino.h>
 #include "QuadKenDataManager.h"
 
-// 異なる型のデータマネージャーを作成
-Quadken::DataManager<float> floatData(1, 5);       // 浮動小数点データ
-Quadken::DataManager<int> intData(2, 3);           // 整数データ
-Quadken::DataManager<uint16_t> sensorData(3, 4);   // センサーデータ
+using namespace Quadken;
+
+// 異なる型のDataManagerを作成
+DataManager<uint8_t> servo_data(1, 4);     // サーボ用（uint8_t）
+DataManager<int8_t> sensor_data(2, 3);        // センサー用（int）
+DataManager<float> imu_data(3, 6);         // IMU用（float）
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("QuadKen DataManager Sample");
-    Serial.println("===========================");
+    delay(2000); // シリアル接続の安定化
+    Serial.println("ESP32 DataManager Test");
     
-    // 初期データの設定
-    std::vector<float> initialFloats = {1.1f, 2.2f, 3.3f, 4.4f, 5.5f};
-    std::vector<int> initialInts = {10, 20, 30};
-    std::vector<uint16_t> initialSensors = {100, 200, 300, 400};
+    // 初期データ設定
+    std::vector<uint8_t> servo_values = {90, 45, 135, 180};
+    std::vector<int8_t> sensor_values = {-128, 0, 127};
+    std::vector<float> imu_values = {0.1f, 0.2f, 0.3f, 1.0f, 0.0f, 0.0f};
     
-    try {
-        floatData.update(initialFloats);
-        intData.update(initialInts);
-        sensorData.update(initialSensors);
-        
-        Serial.println("Initial data set successfully!");
-    } catch (const std::exception& e) {
-        Serial.printf("Error setting initial data: %s\n", e.what());
-    }
+    servo_data.update(servo_values);
+    sensor_data.update(sensor_values);
+    imu_data.update(imu_values);
+    
+    Serial.println("✅ DataManager initialization complete");
 }
 
 void loop() {
-    static unsigned long lastUpdate = 0;
-    static int counter = 0;
+    // データをパック
+    auto servo_packed = servo_data.pack();
+    auto sensor_packed = sensor_data.pack();
+    auto imu_packed = imu_data.pack();
     
-    if (millis() - lastUpdate >= 3000) {
-        lastUpdate = millis();
-        counter++;
-        
-        Serial.printf("\n--- Update #%d ---\n", counter);
-        
-        // データの更新
-        std::vector<float> newFloats = {
-            counter * 1.1f,
-            counter * 2.2f,
-            counter * 3.3f,
-            counter * 4.4f,
-            counter * 5.5f
-        };
-        
-        std::vector<int> newInts = {
-            counter * 10,
-            counter * 20,
-            counter * 30
-        };
-        
-        std::vector<uint16_t> newSensors = {
-            static_cast<uint16_t>(counter * 100),
-            static_cast<uint16_t>(counter * 200),
-            static_cast<uint16_t>(counter * 300),
-            static_cast<uint16_t>(counter * 400)
-        };
-        
-        try {
-            // データ更新
-            floatData.update(newFloats);
-            intData.update(newInts);
-            sensorData.update(newSensors);
-            
-            // 現在のデータを表示
-            Serial.println("Current data:");
-            
-            auto floats = floatData.get();
-            Serial.print("  Float data: ");
-            for (size_t i = 0; i < floats.size(); i++) {
-                Serial.printf("%.1f ", floats[i]);
-            }
-            Serial.println();
-            
-            auto ints = intData.get();
-            Serial.print("  Int data: ");
-            for (size_t i = 0; i < ints.size(); i++) {
-                Serial.printf("%d ", ints[i]);
-            }
-            Serial.println();
-            
-            auto sensors = sensorData.get();
-            Serial.print("  Sensor data: ");
-            for (size_t i = 0; i < sensors.size(); i++) {
-                Serial.printf("%u ", sensors[i]);
-            }
-            Serial.println();
-            
-            // パック/アンパックのテスト
-            Serial.println("\nPack/Unpack test:");
-            
-            // フロートデータのパック
-            auto packedFloat = floatData.pack();
-            Serial.printf("  Packed float data size: %d bytes\n", packedFloat.size());
-            
-            // 新しいインスタンスでアンパック
-            auto unpackedFloat = Quadken::DataManager<float>::unpack(1, packedFloat);
-            Serial.print("  Unpacked float data: ");
-            for (size_t i = 0; i < unpackedFloat.size(); i++) {
-                Serial.printf("%.1f ", unpackedFloat[i]);
-            }
-            Serial.println();
-            
-            // 整数データのパック
-            auto packedInt = intData.pack();
-            Serial.printf("  Packed int data size: %d bytes\n", packedInt.size());
-            
-            auto unpackedInt = Quadken::DataManager<int>::unpack(2, packedInt);
-            Serial.print("  Unpacked int data: ");
-            for (size_t i = 0; i < unpackedInt.size(); i++) {
-                Serial.printf("%d ", unpackedInt[i]);
-            }
-            Serial.println();
-            
-        } catch (const std::exception& e) {
-            Serial.printf("Error: %s\n", e.what());
-        }
-        
-        // カウンターリセット
-        if (counter >= 10) {
-            counter = 0;
-            Serial.println("\n--- Counter reset ---");
-        }
+    Serial.println("--- Packed Data Sizes ---");
+    Serial.printf("Servo: %d bytes\n", servo_packed.size());
+    Serial.printf("Sensor: %d bytes\n", sensor_packed.size());
+    Serial.printf("IMU: %d bytes\n", imu_packed.size());
+    
+    // 受信データのシミュレーション（汎用unpack使用）
+    Serial.println("📦 Testing generic unpack...");
+    
+    // 型を気にせずデータを更新
+    DataManager<uint8_t>::unpackAny(1, servo_packed);
+    DataManager<int>::unpackAny(2, sensor_packed);
+    DataManager<float>::unpackAny(3, imu_packed);
+    
+    Serial.println("✅ Generic unpack successful");
+    
+    // データを取得して表示
+    const auto& servo_values = servo_data.get();
+    const auto& sensor_values = sensor_data.get();
+    const auto& imu_values = imu_data.get();
+    
+    Serial.print("Servo values: ");
+    for (size_t i = 0; i < servo_values.size(); i++) {
+        Serial.printf("%d ", servo_values[i]);
     }
+    Serial.println();
     
-    delay(100);
+    Serial.print("Sensor values: ");
+    for (size_t i = 0; i < sensor_values.size(); i++) {
+        Serial.printf("%d ", sensor_values[i]);
+    }
+    Serial.println();
+    
+    Serial.print("IMU values: ");
+    for (size_t i = 0; i < imu_values.size(); i++) {
+        Serial.printf("%.2f ", imu_values[i]);
+    }
+    Serial.println();
+    
+    delay(2000);
 }

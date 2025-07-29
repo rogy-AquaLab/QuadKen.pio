@@ -8,6 +8,7 @@
 - BNO反応してない
 - ESPのBLDC intでできない
 - PCのコード見ずらい
+- 設定yamlでやりたい
 - ラズパイとのBLE、2つないとできない問題
 
 ### platformio.ini
