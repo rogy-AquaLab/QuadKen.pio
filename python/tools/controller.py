@@ -203,6 +203,26 @@ class Controller:
             # 0~1の範囲にクランプ
             return max(0.0, min(1.0, normalized_value))
 
+    def l2_push(self) -> float:
+        """
+        L2ボタンの押し込み具合を取得。
+        戻り値: 0.0（未押下）～ 1.0（最大押下）
+        """
+        if self.controller_type == 'logi_d':
+            # logiDの場合はL2はボタン（デジタル入力）
+            return 1.0 if self.joystick.get_button(Button.L2) else 0.0
+        else:
+            # その他の場合はアナログ入力
+            l2_axis = self.axis_config['l2']
+            if l2_axis is None:
+                return 0.0
+            
+            raw_value = self.joystick.get_axis(l2_axis)
+            # 軸の値を0~1の範囲に変換（通常-1~1の範囲なので正規化）
+            normalized_value = (raw_value + 1.0) / 2.0
+            # 0~1の範囲にクランプ
+            return max(0.0, min(1.0, normalized_value))
+
     def pushed_button(self, button_id: int) -> bool:
         """
         ボタンが「押され始めた」かどうかを検出。

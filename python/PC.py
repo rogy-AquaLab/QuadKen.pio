@@ -1,12 +1,17 @@
 import asyncio
 import numpy as np
 import cv2
+import yaml
 # from simple_pid import PID
 # import matplotlib.pyplot as plt
 from tools.tcp import create_tcp
 from tools.data_manager import DataManager , DataType
 from tools.controller import Controller , Button
 
+
+# 設定ファイルの読み込み
+with open('config.yaml', 'r', encoding='utf-8') as f:
+    config_data = yaml.safe_load(f)
 
 # 初期化
 try:
@@ -24,10 +29,12 @@ tcp = create_tcp(HOST, PORT)
 batt_servo_data = DataManager(0x11, 4, DataType.UINT8)  # ESP1用サーボ（4個）- 識別子0x11
 legs_servo_data = DataManager(0x12, 12, DataType.UINT8)  # ESP2用サーボ（12個）- 識別子0x12
 
-bldc_data = DataManager(0x02, 2, DataType.UINT8)
+bldc_data = DataManager(0x02, 2, DataType.INT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
+# config.yamlからmain_intervalを読み込み
+main_interval = config_data.get('main', {}).get('interval', 0.1)
 
 async def main():
     if controller.pushed_button(Button.START):  # STARTボタン
@@ -91,9 +98,14 @@ async def main():
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
         batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
     
-    # R2ボタンの押し込み量でBLDCモーターを制御（127.5～255の範囲）
-    r2_value = controller.r2_push()  # 0.0～1.0の値を取得
-    bldc_speed = int(127.5 - (r2_value * 127.5))  # 127.5～255の範囲に変換
+    # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
+    r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
+    l2_value = controller.l2_push()  # 0.0～1.0の値を取得（後進）
+    
+    # 前進と後進の制御を統合（-127～127の範囲）
+    bldc_speed = int(r2_value * 127) - int(l2_value * 128)
+    # 範囲を-128～127に制限
+    bldc_speed = max(-128, min(127, bldc_speed))
     bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
     
     # データを更新
@@ -105,7 +117,7 @@ async def main():
         tcp.send(batt_servo_data.identifier(), batt_servo_data.pack()),  # ESP1（4個のサーボ）
         tcp.send(legs_servo_data.identifier(), legs_servo_data.pack()),  # ESP2（12個のサーボ）
         tcp.send(bldc_data.identifier(), bldc_data.pack()),
-        asyncio.sleep(1)  # 少し待つ
+        asyncio.sleep(main_interval)  # 少し待つ
     )
 
 

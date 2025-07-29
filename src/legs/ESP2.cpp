@@ -20,7 +20,7 @@ constexpr uint8_t BLDC_COUNT = 2;
 BLDCMotor bldcs[BLDC_COUNT];
 
 DataManager<uint8_t> servo_data(1, 12); // Identifier 1, length 12
-DataManager<uint8_t> bldc_data(2, 2); // Identifier 2, length 4
+DataManager<int8_t> bldc_data(2, 2); // Identifier 2, length 2 (int8_t型に変更)
 DataManager<uint8_t> config_data(0xFF, 1); // Config identifier 0xFF, length 1
 
 constexpr const char* SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
@@ -139,7 +139,7 @@ void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data)
     Serial.print(byte);
     Serial.print(" ");
   }
-  DataManager<uint8_t>::unpack(identifier, data);
+  DataManager::unpackAny(identifier, data);
   Serial.print("受信したデータ (ID: ");
   Serial.print(identifier);
   Serial.print(") : ");
@@ -181,9 +181,13 @@ void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data)
     // Update BLDC motor powers based on received data
     const auto& bldc_values = bldc_data.get();
     for (uint8_t i = 0; i < BLDC_COUNT && i < bldc_values.size(); i++) {
-      // Convert uint8_t (0-255) to power percentage (-1 to +1)
-      float power = bldc_values[i] / 255.0f * 2.0f - 1.0f;
+      // Convert int8_t (-128~127) to power percentage (-1 to +1)
+      float power = bldc_values[i] / 127.0f;
+      // Clamp to [-1, 1] range for safety
+      if (power > 1.0f) power = 1.0f;
+      if (power < -1.0f) power = -1.0f;
       bldcs[i].setPower(power);
+      Serial.printf("BLDC%d: raw=%d, power=%.3f\n", i+1, bldc_values[i], power);
     }
     Serial.println("BLDC motors updated");
   }

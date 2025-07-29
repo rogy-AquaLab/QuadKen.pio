@@ -176,7 +176,7 @@ class DebugTcp:
             raise ConnectionError("TCP接続が確立されていません。")
         
         self._print_debug("データ受信待機中", "")
-        await asyncio.sleep(1)
+        await asyncio.sleep(30)
         return 0xFF, 1, b'A'  # 疑似データを返す
     
     def _print_debug(self, action: str, info: str):
@@ -212,14 +212,16 @@ def create_tcp(host: str, port: int) -> Union[Tcp, DebugTcp]:
     """設定に基づいてTcpインスタンスを作成する"""
     try:
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
-        mode = 'production'  # デフォルト
+        debug_mode = False  # デフォルト
         
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
-                mode = config.get('tcp', {}).get('mode', 'production')
+                debug_mode_value = config.get('tcp', {}).get('debug_mode', 'off')
+                # 'on', True, 1 などをTrueとして扱う
+                debug_mode = debug_mode_value in ['on', True, 1, 'true', 'True']
         
-        if mode == 'debug':
+        if debug_mode:
             return DebugTcp(host, port)
         else:
             return Tcp(host, port)
