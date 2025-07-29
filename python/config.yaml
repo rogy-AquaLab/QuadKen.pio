@@ -3,3 +3,6 @@ tcp:
   debug_options:
     show_timestamp: true
     show_colors: true
+
+controller:
+  type: "pro_con"  # "pro_con", "logi_x", "logi_d"
