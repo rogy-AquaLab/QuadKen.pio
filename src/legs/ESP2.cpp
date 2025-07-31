@@ -139,7 +139,7 @@ void receiveCallback(const uint8_t identifier, const std::vector<uint8_t>& data)
     Serial.print(byte);
     Serial.print(" ");
   }
-  DataManager::unpackAny(identifier, data);
+  DataManagerBase::unpackAny(identifier, data);
   Serial.print("受信したデータ (ID: ");
   Serial.print(identifier);
   Serial.print(") : ");

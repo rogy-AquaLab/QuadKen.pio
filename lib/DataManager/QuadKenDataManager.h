@@ -28,6 +28,23 @@ public:
     virtual size_t getExpectedSize() const = 0;
     virtual size_t getElementSize() const = 0;
     
+    // 汎用unpack関数（型指定不要、identifierからデータを検索してデータを入れる）
+    static void unpackAny(uint8_t identifier, const std::vector<uint8_t>& buffer) {
+        auto& global_instances = getGlobalInstances();
+        auto it = global_instances.find(identifier);
+        if (it == global_instances.end()) {
+            THROW_RUNTIME_ERROR("No instance found for identifier");
+        }
+        
+        DataManagerBase* instance = it->second;
+        if (buffer.size() != instance->getExpectedSize()) {
+            THROW_INVALID_ARGUMENT("Buffer size mismatch for identifier");
+        }
+        
+        // identifierで見つけたインスタンスにデータを直接設定
+        instance->unpack(buffer);
+    }
+    
 protected:
     static std::map<uint8_t, DataManagerBase*>& getGlobalInstances() {
         static std::map<uint8_t, DataManagerBase*> instances;
@@ -96,21 +113,7 @@ public:
         return identifier_;
     }
 
-    // 汎用unpack関数（型チェックなし、サイズチェックのみ）
-    static void unpackAny(uint8_t identifier, const std::vector<uint8_t>& buffer) {
-        auto& global_instances = getGlobalInstances();
-        auto it = global_instances.find(identifier);
-        if (it == global_instances.end()) {
-            THROW_RUNTIME_ERROR("No instance found for identifier");
-        }
-        
-        DataManagerBase* instance = it->second;
-        if (buffer.size() != instance->getExpectedSize()) {
-            THROW_INVALID_ARGUMENT("Buffer size mismatch");
-        }
-        
-        instance->unpack(buffer);
-    }
+
 
     // 型安全なunpack関数（要素サイズチェック付き）
     static std::vector<T> unpack(uint8_t identifier, const std::vector<uint8_t>& buffer) {

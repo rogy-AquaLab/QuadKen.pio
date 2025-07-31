@@ -2,8 +2,10 @@ import asyncio
 from tools.tcp import Tcp
 from tools.data_manager import DataManager , DataType
 from tools.ble import Ble
-from tools.bno import Bno
+from tools.bno import BNOSensor
 from tools.camera import Picam
+
+main_interval = 0.1  # メインループの実行間隔（秒）
 
 # Hto_ESPが複数同時に実行されないようにするため、やむなく実装
 esp_task = None
@@ -22,7 +24,7 @@ PORT = 5000
 
 tcp = Tcp(HOST, PORT)
 
-bno = Bno(True, 0x28)  # BNO055センサのインスタンス作成（クリスタルオシレータ使用、デフォルトアドレス0x28）
+bno = BNOSensor()  # BNO055センサのインスタンス作成
 
 # データ管理インスタンスの作成
 esp1_servo_data = DataManager(0x11, 4, DataType.UINT8)   # ESP1用サーボ（4個）- 識別子0x11
@@ -48,36 +50,53 @@ async def shutdown():
     print("✅ シャットダウン完了")
     exit(0)
 
+async def ensure_bno_connection():
+    """BNO055センサーの接続を確保する（再接続機能付き）"""
+    if not bno.is_connected():
+        try:
+            print("🔄 BNO055センサーに接続中...")
+            bno.connect()
+            print("✅ BNO055センサー接続成功")
+            return True
+        except Exception as e:
+            print(f"⚠️ BNO055センサー接続失敗: {e}")
+            return False
+    return True
+
 async def main():
-    # BNO055センサの接続確保（失敗しても続行）
-    if not bno.ensure_connected():
-        await asyncio.sleep(1)  # 少し待つ
+    # BNO055センサの接続確保（再接続機能付き）
+    if not await ensure_bno_connection():
         return
-        # print("⚠️ BNO055センサ接続エラー: センサーなしで続行します")
     
     # BNO055センサからの角度情報取得
-    if bno.is_connected():
-        try:
-            bno_euler = bno.euler()  # BNO055センサからの角度情報取得
-            if bno_euler is not None:
-                heading, roll, pitch = bno_euler
-                print(f"🧭 角度情報: ヘディング={heading}° ロール={roll}° ピッチ={pitch}°")
-                if 0 <= heading <= 360 and -180 <= roll <= 180 and -180 <= pitch <= 180:
-                    heading = heading if heading <= 180 else heading - 360  # ヘディングを-180〜180に変換
-                    bno_data.update([int(heading/2), int(roll/2), int(pitch/2)])
-                    # PCにデータを送信
-                    await tcp.send(bno_data.identifier(), bno_data.pack())
-            else:
-                print("⚠️ BNO055センサからの角度情報が取得できません")
-                
-        except RuntimeError as e:
-            print(f"❌ BNO055センサ通信エラー: {e}")
-        except ValueError as e:
-            print(f"⚠️ BNO055センサデータエラー: {e}")
-        except Exception as e:
-            print(f"⚠️ BNO055センサ予期しないエラー: {e}")
+    try:
+        bno_euler = bno.euler()  # BNO055センサからの角度情報取得
+        heading, roll, pitch = bno_euler
+        print(f"🧭 角度情報: ヘディング={heading}° ロール={roll}° ピッチ={pitch}°")
         
-    await asyncio.sleep(1)  # 少し待つ
+        # 角度データの範囲チェックと変換
+        if heading is not None and roll is not None and pitch is not None:
+            # ヘディングを-180〜180に変換
+            if heading > 180:
+                heading = heading - 360
+            
+            # データを-90〜90の範囲に制限してint8に変換
+            heading_scaled = max(-90, min(90, int(heading/2)))
+            roll_scaled = max(-90, min(90, int(roll/2)))
+            pitch_scaled = max(-90, min(90, int(pitch/2)))
+            
+            bno_data.update([heading_scaled, roll_scaled, pitch_scaled])
+            # PCにデータを送信
+            await tcp.send(bno_data.identifier(), bno_data.pack())
+        else:
+            print("⚠️ BNO055センサーから無効なデータを受信")
+            
+    except Exception as e:
+        print(f"❌ BNO055センサーエラー: {e}")
+        # 接続が切れた可能性があるため、次回のループで再接続を試行
+        if "接続が切れています" in str(e) or "接続されていません" in str(e):
+            print("🔄 次回ループで再接続を試行します")
+
 
 # 通知を受け取ったときのコールバック
 def Hreceive_ESP(device_num , identifier, data):
@@ -204,7 +223,7 @@ async def Hsend_image_PC():
             while True:
                 data = await picam.get()  # フレームを取得
                 await tcp.send(0x00, data)  # データをPCに送信
-                await asyncio.sleep(2.5)  # 次のフレームまで待機
+                await asyncio.sleep(0.1)  # 次のフレームまで待機
         
         except asyncio.TimeoutError:
             print("⚠ フレーム取得タイムアウト。再試行します。")
@@ -229,7 +248,10 @@ async def Hto_PC(addr):
     # PCとの切断時処理
     try:
         while True:
-            await main()
+            await asyncio.gather(
+                main(),
+                asyncio.sleep(main_interval)  # メインループの実行間隔
+            )
             if receive_task.done():
                 if receive_task.exception() is not None:
                     raise receive_task.exception()

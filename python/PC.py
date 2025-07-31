@@ -39,23 +39,17 @@ main_interval = config_data.get('main', {}).get('interval', 0.1)
 async def main():
     if controller.pushed_button(Button.START):  # STARTボタン
         config.update([1]) # ESPとの接続開始
-        await asyncio.gather(
-            tcp.send(config.identifier(), config.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
+        await tcp.send(config.identifier(), config.pack())
         return
     
     if controller.pushed_button(Button.L1):  # L1ボタン
         config.update([2])  # ESPセットアップコマンド
-        await asyncio.gather(
-            tcp.send(config.identifier(), config.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
+        await tcp.send(config.identifier(), config.pack())
         return
     
     if controller.pushed_button(Button.R1):  # R1ボタン
         config.update([3])  # ESP設定3コマンド
-        await asyncio.gather(
-            tcp.send(config.identifier(), config.pack()),
-            asyncio.sleep(0.1))  # 少し待つ
+        await tcp.send(config.identifier(), config.pack())
         return
     if controller.pushed_button(Button.SELECT):  # SELECTボタン
         raise EOFError("ユーザーがSelectボタンで終了")  # 明示的に終了を伝える
@@ -116,8 +110,7 @@ async def main():
     await asyncio.gather(
         tcp.send(batt_servo_data.identifier(), batt_servo_data.pack()),  # ESP1（4個のサーボ）
         tcp.send(legs_servo_data.identifier(), legs_servo_data.pack()),  # ESP2（12個のサーボ）
-        tcp.send(bldc_data.identifier(), bldc_data.pack()),
-        asyncio.sleep(main_interval)  # 少し待つ
+        tcp.send(bldc_data.identifier(), bldc_data.pack())
     )
 
 
@@ -125,11 +118,15 @@ async def Hreceive_Rasp():
     while True:
         data_type, size, data = await tcp.receive()
 
-        if data_type == 0x00:  # 画像デー
+        if data_type == 0x00:  # 画像データ
             img_array = np.frombuffer(data, dtype=np.uint8)
             frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-            cv2.imshow('Async TCP Stream', frame)
+            
+            if frame is not None:
+                cv2.imshow('Async TCP Stream', frame)
+                cv2.waitKey(1)
             continue
+            
         received_data = DataManager.unpack(data_type, data)
         print(f"📥 受信 : {received_data}")
 
@@ -148,7 +145,11 @@ async def tcp_client():
 
     try:
         while True:
-            await main()
+            # main()とsleepを分離して並行実行
+            await asyncio.gather(
+                main(),
+                asyncio.sleep(main_interval)
+            )
             if receive_task.done():
                 if receive_task.exception():
                     raise receive_task.exception()

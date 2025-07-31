@@ -13,7 +13,7 @@ class Picam:
 
     def start(self):
         self.picam = Picamera2()
-        self.picam.configure(self.picam.create_video_configuration(main={"format": 'RGB888'}))
+        self.picam.configure(self.picam.create_video_configuration(main={"format": 'RGB888', "size": (720, 480)}))
         self.picam.start()
 
     def close(self):
@@ -27,7 +27,7 @@ class Picam:
         
         return await asyncio.wait_for(asyncio.to_thread(self._capture), timeout=timeout)
     
-    async def _capture(self):
+    def _capture(self):
         frame = self.picam.capture_array()
         _, jpeg = cv2.imencode('.jpg', frame)
         data = jpeg.tobytes()
