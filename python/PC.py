@@ -66,14 +66,15 @@ async def main():
     legs_servo_values = legs_servo_data.get()  # デフォルト位置で初期化
     
     # 左スティックで脚部サーボを制御
-    for i in range(12):
-        legs_servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
+    # for i in [6,7,8,11]:
+    #     legs_servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
     
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
     
     # Lスティック押し込み状態を取得
     l_stick_pressed = controller.is_button_pressed(Button.L_STICK)
+    r_stick_pressed = controller.is_button_pressed(Button.R_STICK)
     
     # A、B、X、Yボタンでバッテリー部サーボ（0～3番）を制御
     # Lスティック押し込み時：10度、非押し込み時：170度
@@ -81,16 +82,16 @@ async def main():
     target_angle_released = 170  # Lスティック離し時の角度
     
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
+        legs_servo_values[6] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
+        legs_servo_values[7] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ2番制御
-        batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
+        legs_servo_values[8] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
-        batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
+        legs_servo_values[11] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
