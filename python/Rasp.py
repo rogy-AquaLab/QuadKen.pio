@@ -6,6 +6,7 @@ from tools.bno import BNOSensor
 from tools.camera import Picam
 
 main_interval = 0.1  # メインループの実行間隔（秒）
+camera_interval = 0.1  # カメラのフレーム取得間隔（秒）
 
 # Hto_ESPが複数同時に実行されないようにするため、やむなく実装
 esp_task = None
@@ -223,8 +224,8 @@ async def Hsend_image_PC():
             while True:
                 data = await picam.get()  # フレームを取得
                 await tcp.send(0x00, data)  # データをPCに送信
-                await asyncio.sleep(0.1)  # 次のフレームまで待機
-        
+                await asyncio.sleep(camera_interval)  # 次のフレームまで待機
+
         except asyncio.TimeoutError:
             print("⚠ フレーム取得タイムアウト。再試行します。")
         except Exception as e: # エラー取得めんどい
