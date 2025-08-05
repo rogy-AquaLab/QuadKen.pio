@@ -1,11 +1,11 @@
 tcp:
-  debug_mode: on  # on または off
+  debug_mode: off  # on または off
   debug_options:
     show_timestamp: true
     show_colors: true
 
 controller:
-  type: "pro_con"  # "pro_con", "logi_x", "logi_d"
+  type: "logi_x"  # "pro_con", "logi_x", "logi_d"
 
 main:
-  interval: 1  # メインループの実行間隔（秒）
+  interval: 0.1  # メインループの実行間隔（秒）
