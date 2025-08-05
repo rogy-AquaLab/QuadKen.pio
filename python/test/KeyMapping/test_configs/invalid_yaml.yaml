@@ -1,0 +1,3 @@
+# テスト用設定ファイル（YAML構文エラー）
+key_mapping:
+  invalid_yaml: [unclosed_bracket

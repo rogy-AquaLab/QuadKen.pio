@@ -1,0 +1,17 @@
+tcp:
+  debug_mode: off
+  debug_options:
+    show_timestamp: true
+    show_colors: true
+
+controller:
+  type: "pro_con"
+
+main:
+  interval: 0.1
+
+key_mapping:
+  operation_preset: "basic_individual"
+  override_mappings:
+    system_connect: "Y"
+    servo_batt_0: "UP"

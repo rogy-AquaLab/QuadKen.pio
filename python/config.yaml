@@ -9,3 +9,14 @@ controller:
 
 main:
   interval: 0.1  # メインループの実行間隔（秒）
+
+# キーマッピング設定
+key_mapping:
+  # 使用する操作プリセット名
+  operation_preset: "basic_individual"
+  
+  # プリセットのオーバーライド（オプション）
+  # 選択したプリセットの一部のキーだけを変更したい場合
+  override_mappings:
+    system_connect: "Y"      # STARTの代わりにYボタン
+    servo_batt_0: "X"        # Aの代わりにXボタン

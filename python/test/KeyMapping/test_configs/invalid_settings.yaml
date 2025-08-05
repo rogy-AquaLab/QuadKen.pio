@@ -1,0 +1,6 @@
+# テスト用設定ファイル（無効な設定値）
+key_mapping:
+  operation_mode: "invalid_mode"
+  override_mappings:
+    system_connect: "INVALID_BUTTON"
+    servo_batt_0: "B"
