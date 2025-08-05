@@ -164,7 +164,7 @@ class Controller:
         # イベント処理（押し始めを検出するため）
         pygame.event.pump()
 
-    def get_angle(self):
+    def get_left_angle(self):
         """
         左スティック（またはD-pad）の角度（度）と大きさを取得。
         角度は右方向を0、上方向が90度。
@@ -177,6 +177,19 @@ class Controller:
             # その他の場合は左スティック
             x = self.joystick.get_axis(self.axis_config['left_stick_x'])
             y = -self.joystick.get_axis(self.axis_config['left_stick_y'])  # y軸は上下逆になるため反転
+
+        magnitude = math.hypot(x, y)
+        angle = math.atan2(y, x) if magnitude > 0.1 else 0.0  # デッドゾーン処理
+        angle = math.degrees(angle)  # ラジアンから度に変換
+        return angle, magnitude
+
+    def get_right_angle(self):
+        """
+        右スティックの角度（度）と大きさを取得。
+        角度は右方向を0、上方向が90度。
+        """
+        x = self.joystick.get_axis(self.axis_config['right_stick_x'])
+        y = -self.joystick.get_axis(self.axis_config['right_stick_y'])
 
         magnitude = math.hypot(x, y)
         angle = math.atan2(y, x) if magnitude > 0.1 else 0.0  # デッドゾーン処理

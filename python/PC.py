@@ -24,6 +24,7 @@ PORT = 5000
 
 tcp = create_tcp(HOST, PORT)
 
+legs_servo_num = [6,7,8,11]
 
 # ESP1用サーボデータ（4個）とESP2用サーボデータ（12個）
 batt_servo_data = DataManager(0x11, 4, DataType.UINT8)  # ESP1用サーボ（4個）- 識別子0x11
@@ -60,15 +61,25 @@ async def main():
     controller.update()
     
     # スティックの値を取得
-    angle, magnitude = controller.get_angle()
+    left_angle, left_magnitude = controller.get_left_angle()
+    right_angle, right_magnitude = controller.get_right_angle()
 
     # 脚部サーボデータの設定（12個のサーボ - ESP2用）
     legs_servo_values = legs_servo_data.get()  # デフォルト位置で初期化
     
-    # 左スティックで脚部サーボを制御
-    # for i in [6,7,8,11]:
-    #     legs_servo_values[i] = max(0, min(180, int(90 + angle * 0.5)))  # 角度に基づくサーボ制御
+    for i in legs_servo_num:
+        legs_servo_values[i] = 120
     
+    # 左スティックで脚部サーボを制御
+    if left_magnitude > 0.5:  # スティックが動いている場合
+        for i in legs_servo_num:
+            legs_servo_values[i] = max(0, min(180, int(90 + left_angle * 0.5)))  # 角度に基づくサーボ制御
+    if right_magnitude > 0.3:  # 右スティックが動いている場合
+        angle_step = (right_angle + 180) // 90
+        for i in range(0,4):
+            if angle_step == i:
+                legs_servo_values[legs_servo_num[i]] = int(right_magnitude*180)  # 右スティックの角度に基づくサーボ制御
+
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
     
@@ -82,16 +93,16 @@ async def main():
     target_angle_released = 170  # Lスティック離し時の角度
     
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        legs_servo_values[6] = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        legs_servo_values[7] = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ2番制御
-        legs_servo_values[8] = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
-        legs_servo_values[11] = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
