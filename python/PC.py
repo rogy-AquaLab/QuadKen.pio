@@ -95,24 +95,28 @@ async def main():
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
         if r_stick_pressed:
             legs_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
+            legs_servo_values[3] = target_angle_released if l_stick_pressed else target_angle_pressed
         else :
             batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
         if r_stick_pressed:
             legs_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
+            legs_servo_values[2] = target_angle_released if l_stick_pressed else target_angle_pressed
         else :
             batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ2番制御
         if r_stick_pressed:
-            legs_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
+            legs_servo_values[4] = target_angle_pressed if l_stick_pressed else target_angle_released
+            legs_servo_values[10] = target_angle_released if l_stick_pressed else target_angle_pressed
         else :
             batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
         if r_stick_pressed:
-            legs_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
+            legs_servo_values[5] = target_angle_pressed if l_stick_pressed else target_angle_released
+            legs_servo_values[9] = target_angle_released if l_stick_pressed else target_angle_pressed
         else :
             batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
     
