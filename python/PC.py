@@ -68,7 +68,7 @@ async def main():
     legs_servo_values = legs_servo_data.get()  # デフォルト位置で初期化
     
     for i in legs_servo_num:
-        legs_servo_values[i] = 120
+        legs_servo_values[i] = 150
     
     # 左スティックで脚部サーボを制御
     if left_magnitude > 0.5:  # スティックが動いている場合
@@ -93,17 +93,31 @@ async def main():
     target_angle_released = 170  # Lスティック離し時の角度
     
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
+        if r_stick_pressed:
+            legs_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
+        else :
+            batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
+        if r_stick_pressed:
+            legs_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
+        else :
+            batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ2番制御
-        batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
+        if r_stick_pressed:
+            legs_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
+        else :
+            batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
-        batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
+        if r_stick_pressed:
+            legs_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
+        else :
+            batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
     
+    
+
     # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
     l2_value = controller.l2_push()  # 0.0～1.0の値を取得（後進）
