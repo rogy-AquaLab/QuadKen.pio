@@ -41,6 +41,48 @@ config = DataManager(0xFF, 1, DataType.UINT8)
 # config.yamlからmain_intervalを読み込み
 main_interval = config_data.get('main', {}).get('interval', 0.1)
 
+def batt_servo_control(twist,lstick,num):
+    batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
+
+    target_angle_pressed = 10    # Lスティック押し込み時の角度
+    target_angle_released = 170  # Lスティック離し時の角度
+    right_barast = left_barast = up_barast = down_barast = target_angle_pressed
+    if num == 0:  # Aボタンでバッテリーサーボ0番制御
+        down_barast = target_angle_pressed if lstick else target_angle_released
+    
+    if num == 1:  # Bボタンでバッテリーサーボ1番制御
+        right_barast = target_angle_pressed if lstick else target_angle_released
+
+    if num == 2:  # Yボタンでバッテリーサーボ2番制御
+        up_barast = target_angle_pressed if lstick else target_angle_released
+
+    if num == 3:  # Xボタンでバッテリーサーボ3番制御
+        left_barast = target_angle_pressed if lstick else target_angle_released
+
+    # twistの値に基づいてbarastを割り当て
+    if -45 <= twist < 45:  # 前方向 (0度付近)
+        batt_servo_values[0] = down_barast
+        batt_servo_values[1] = right_barast
+        batt_servo_values[2] = up_barast
+        batt_servo_values[3] = left_barast
+    elif 45 <= twist < 135:  # 右方向 (90度付近)
+        batt_servo_values[0] = left_barast
+        batt_servo_values[1] = down_barast
+        batt_servo_values[2] = right_barast
+        batt_servo_values[3] = up_barast
+    elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
+        batt_servo_values[0] = up_barast
+        batt_servo_values[1] = left_barast
+        batt_servo_values[2] = down_barast
+        batt_servo_values[3] = right_barast
+    else:  # -135 <= twist < -45: 左方向 (-90度付近)
+        batt_servo_values[0] = right_barast
+        batt_servo_values[1] = up_barast
+        batt_servo_values[2] = left_barast
+        batt_servo_values[3] = down_barast
+
+    batt_servo_data.update(batt_servo_values)
+
 async def main():
     bno = bno_data.get()
     theta, phi, twist = bno[0], bno[1]*3, bno[2]*2
@@ -85,7 +127,7 @@ async def main():
 
 
     if right_magnitude > 0.3:  # 右スティックが動いている場合
-        controll_angle = right_angle - bno_servo_offset
+        controll_angle = right_angle - bno_legs_offset - twist
         ver_power = math.sin(math.radians(controll_angle)) * 100
         hor_power = math.cos(math.radians(controll_angle)) * 100
 
@@ -106,46 +148,20 @@ async def main():
     # Lスティック押し込み時：10度、非押し込み時：170度
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
-    
-    # twistの値に基づいてbarastを割り当て
-    if -45 <= twist < 45:  # 前方向 (0度付近)
-        down_barast = batt_servo_values[0]
-        right_barast = batt_servo_values[1]
-        up_barast = batt_servo_values[2]
-        left_barast = batt_servo_values[3]
-    elif 45 <= twist < 135:  # 右方向 (90度付近)
-        left_barast = batt_servo_values[0]
-        down_barast = batt_servo_values[1]
-        right_barast = batt_servo_values[2]
-        up_barast = batt_servo_values[3]
-    elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
-        up_barast = batt_servo_values[0]
-        left_barast = batt_servo_values[1]
-        down_barast = batt_servo_values[2]
-        right_barast = batt_servo_values[3]
-    else:  # -135 <= twist < -45: 左方向 (-90度付近)
-        right_barast = batt_servo_values[0]
-        up_barast = batt_servo_values[1]
-        left_barast = batt_servo_values[2]
-        down_barast = batt_servo_values[3]
 
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        down_barast = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=0)
     
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        right_barast = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=1)
 
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ2番制御
-        up_barast = target_angle_pressed if l_stick_pressed else target_angle_released
+        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=2)
 
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ3番制御
-        left_barast = target_angle_pressed if l_stick_pressed else target_angle_released
-    
-    # バッテリーサーボ値を実際の配列に反映
-    batt_servo_values[0] = up_barast
-    batt_servo_values[1] = down_barast
-    batt_servo_values[2] = left_barast
-    batt_servo_values[3] = right_barast
+        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=3)
+
+
     
     # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
@@ -159,7 +175,7 @@ async def main():
     
     # データを更新
     legs_servo_data.update(legs_servo_values)
-    batt_servo_data.update(batt_servo_values)
+    # batt_servo_data.update(batt_servo_values)
     bldc_data.update(bldc_values)
     
     
