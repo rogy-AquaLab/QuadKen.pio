@@ -47,6 +47,7 @@ def batt_servo_control(twist,lstick,num):
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
     right_barast = left_barast = up_barast = down_barast = target_angle_pressed
+    
     if num == 0:  # Aボタンでバッテリーサーボ0番制御
         down_barast = target_angle_pressed if lstick else target_angle_released
     
