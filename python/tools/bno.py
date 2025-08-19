@@ -29,6 +29,7 @@ class BNOSensor:
             
             # BNO055センサーを初期化
             self.sensor = adafruit_bno055.BNO055_I2C(self.i2c)
+            self.sensor.axis_remap = (2,1,0,1,1,1)
             
             # 接続テスト（センサーからデータを読み取り）
             test_data = self.sensor.euler
@@ -44,63 +45,42 @@ class BNOSensor:
     
     def euler(self):
         """オイラー角を取得する
-        
+
         Returns:
             tuple: (heading, roll, pitch) の角度データ（度単位）
-            
+
         Raises:
             Exception: センサーが接続されていない、またはデータ取得に失敗した場合
         """
         # 接続状態を確認
         if not self.connected or self.sensor is None:
             raise Exception("センサーが接続されていません。先にconnect()を呼び出してください")
-        
+
         try:
             # オイラー角データを取得
-            quat = self.sensor.quaternion
+            q = self.sensor.quaternion  # (heading, roll, pitch)
+            if q is None:
+                return None
+            w, x, y, z = q
 
-            if quat is None:
-                # 接続が切れている可能性
-                self.connected = False
-                raise Exception("センサーとの接続が切れています")
-            w, x, y, z = quat
+            # Roll (x軸回り)
+            sinr_cosp = 2.0 * (w * x + y * z)
+            cosr_cosp = 1.0 - 2.0 * (x * x + y * y)
+            roll = math.atan2(sinr_cosp, cosr_cosp)
 
-            # quaternion から直接軸ベクトルを計算
-            z_axis = np.array([
-                2*(x*z + y*w),
-                2*(y*z - x*w),
-                1 - 2*(x*x + y*y)
-            ])
-            x_axis = np.array([
-                1 - 2*(y*y + z*z),
-                2*(x*y + z*w),
-                2*(x*z - y*w)
-            ])
-
-            # θ: 倒れ角
-            zz = z_axis[2]
-            theta = 90 - math.degrees(math.acos(np.clip(zz, -1.0, 1.0)))
-
-            # φ: 倒れ方向（北基準）
-            phi = math.degrees(math.atan2(z_axis[0], z_axis[1]))
-            if phi < 0:
-                phi += 360
-
-            # twist: 特殊ベクトルとX軸ベクトルの角度
-            r = np.hypot(z_axis[0], z_axis[1])
-            vec = np.array([z_axis[0], z_axis[1], -r*r/zz if zz != 0 else 0.0])
-
-            norm_vec = np.linalg.norm(vec)
-            norm_x = np.linalg.norm(x_axis)
-            if norm_vec == 0 or norm_x == 0:
-                twist = 0.0
+            # Pitch (y軸回り)
+            sinp = 2.0 * (w * y - z * x)
+            if abs(sinp) >= 1:
+                pitch = math.copysign(math.pi / 2, sinp)  # ±90° (gimbal lock)
             else:
-                cos_angle = np.clip(np.dot(vec, x_axis) / (norm_vec * norm_x), -1.0, 1.0)
-                twist_angle = math.degrees(math.acos(cos_angle))
-                cross_z = np.cross(x_axis, vec)[2]
-                twist = twist_angle if cross_z >= 0 else -twist_angle
+                pitch = math.asin(sinp)
 
-            return {int(theta), int(phi), int(twist)}
+            # Yaw (z軸回り)
+            siny_cosp = 2.0 * (w * z + x * y)
+            cosy_cosp = 1.0 - 2.0 * (y * y + z * z)
+            yaw = math.atan2(siny_cosp, cosy_cosp)
+
+            return (int(math.degrees(yaw)), int(math.degrees(roll)), int(math.degrees(pitch)))
 
         except Exception as e:
             self.connected = False

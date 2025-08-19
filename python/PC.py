@@ -26,6 +26,7 @@ PORT = 5000
 tcp = create_tcp(HOST, PORT)
 
 legs_servo_num = [6,7,8,11]
+# bno camera offset 45
 bno_legs_offset = 45
 bno_tank_offset = 0
 
@@ -47,7 +48,7 @@ def batt_servo_control(twist,lstick,num):
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
     right_barast = left_barast = up_barast = down_barast = target_angle_pressed
-    
+
     if num == 0:  # Aボタンでバッテリーサーボ0番制御
         down_barast = target_angle_pressed if lstick else target_angle_released
     
@@ -129,13 +130,13 @@ async def main():
 
     if right_magnitude > 0.3:  # 右スティックが動いている場合
         controll_angle = right_angle - bno_legs_offset - twist
-        ver_power = math.sin(math.radians(controll_angle)) * 100
-        hor_power = math.cos(math.radians(controll_angle)) * 100
+        ver_power = math.sin(math.radians(controll_angle)) * 180 * right_magnitude
+        hor_power = math.cos(math.radians(controll_angle)) * 180 * right_magnitude
 
         legs_servo_values[legs_servo_num[0]] = int(ver_power) if ver_power > 0 else 0
-        legs_servo_values[legs_servo_num[1]] = int(hor_power) if hor_power > 0 else 0
+        legs_servo_values[legs_servo_num[3]] = int(hor_power) if hor_power > 0 else 0
         legs_servo_values[legs_servo_num[2]] = int(-ver_power) if ver_power < 0 else 0
-        legs_servo_values[legs_servo_num[3]] = int(-hor_power) if hor_power < 0 else 0
+        legs_servo_values[legs_servo_num[1]] = int(-hor_power) if hor_power < 0 else 0
 
     print(legs_servo_values)
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）

@@ -68,29 +68,28 @@ async def main():
     # BNO055センサの接続確保（再接続機能付き）
     if not await ensure_bno_connection():
         return
-    
+
     # BNO055センサからの角度情報取得
     try:
         bno_euler = bno.euler()  # BNO055センサからの角度情報取得
-        theta, phi, twist = bno_euler
-        print(f"θ: {theta}° φ: {phi}° twist: {twist}°")        
+        phi, theta, twist = bno_euler
+        print(f"θ: {theta}° φ: {phi}° twist: {twist}°")
+
         # 角度データの範囲チェックと変換
         if theta is not None and phi is not None and twist is not None:
             # ヘディングを-180〜180に変換
-            if theta > 180:
-                theta = theta - 360
-            
+#            if theta > 180:
+ #               theta = theta - 360
+
             # データを-90〜90の範囲に制限してint8に変換
             theta_scaled = theta
             phi_scaled = phi//3
             twist_scaled = twist//2
 
-            
+
             bno_data.update([theta_scaled, phi_scaled, twist_scaled])
             # PCにデータを送信
             await tcp.send(bno_data.identifier(), bno_data.pack())
-        else:
-            print("⚠️ BNO055センサーから無効なデータを受信")
             
     except Exception as e:
         print(f"❌ BNO055センサーエラー: {e}")
