@@ -72,21 +72,21 @@ async def main():
     # BNO055センサからの角度情報取得
     try:
         bno_euler = bno.euler()  # BNO055センサからの角度情報取得
-        heading, roll, pitch = bno_euler
-        print(f"🧭 角度情報: ヘディング={heading}° ロール={roll}° ピッチ={pitch}°")
-        
+        theta, phi, twist = bno_euler
+        print(f"θ: {theta}° φ: {phi}° twist: {twist}°")        
         # 角度データの範囲チェックと変換
-        if heading is not None and roll is not None and pitch is not None:
+        if theta is not None and phi is not None and twist is not None:
             # ヘディングを-180〜180に変換
-            if heading > 180:
-                heading = heading - 360
+            if theta > 180:
+                theta = theta - 360
             
             # データを-90〜90の範囲に制限してint8に変換
-            heading_scaled = max(-90, min(90, int(heading/2)))
-            roll_scaled = max(-90, min(90, int(roll/2)))
-            pitch_scaled = max(-90, min(90, int(pitch/2)))
+            theta_scaled = theta
+            phi_scaled = phi//3
+            twist_scaled = twist//2
+
             
-            bno_data.update([heading_scaled, roll_scaled, pitch_scaled])
+            bno_data.update([theta_scaled, phi_scaled, twist_scaled])
             # PCにデータを送信
             await tcp.send(bno_data.identifier(), bno_data.pack())
         else:

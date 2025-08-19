@@ -2,6 +2,7 @@ import asyncio
 import numpy as np
 import cv2
 import yaml
+import math
 # from simple_pid import PID
 # import matplotlib.pyplot as plt
 from tools.tcp import create_tcp
@@ -25,6 +26,9 @@ PORT = 5000
 tcp = create_tcp(HOST, PORT)
 
 legs_servo_num = [6,7,8,11]
+bno_legs_offset = 45
+bno_tank_offset = 0
+
 
 # ESP1用サーボデータ（4個）とESP2用サーボデータ（12個）
 batt_servo_data = DataManager(0x11, 4, DataType.UINT8)  # ESP1用サーボ（4個）- 識別子0x11
@@ -38,6 +42,10 @@ config = DataManager(0xFF, 1, DataType.UINT8)
 main_interval = config_data.get('main', {}).get('interval', 0.1)
 
 async def main():
+    bno = bno_data.get()
+    theta, phi, twist = bno[0], bno[1]*3, bno[2]*2
+    print(f"θ: {theta}° φ: {phi}° twist: {twist}°")
+
     if controller.pushed_button(Button.START):  # STARTボタン
         config.update([1]) # ESPとの接続開始
         await tcp.send(config.identifier(), config.pack())
@@ -67,19 +75,26 @@ async def main():
     # 脚部サーボデータの設定（12個のサーボ - ESP2用）
     legs_servo_values = legs_servo_data.get()  # デフォルト位置で初期化
     
-    for i in legs_servo_num:
-        legs_servo_values[i] = 120
+    # for i in legs_servo_num:
+    #     legs_servo_values[i] = 120
     
     # 左スティックで脚部サーボを制御
     if left_magnitude > 0.5:  # スティックが動いている場合
         for i in legs_servo_num:
             legs_servo_values[i] = max(0, min(180, int(90 + left_angle * 0.5)))  # 角度に基づくサーボ制御
-    if right_magnitude > 0.3:  # 右スティックが動いている場合
-        angle_step = (right_angle + 180) // 90
-        for i in range(0,4):
-            if angle_step == i:
-                legs_servo_values[legs_servo_num[i]] = int(right_magnitude*180)  # 右スティックの角度に基づくサーボ制御
 
+
+    if right_magnitude > 0.3:  # 右スティックが動いている場合
+        controll_angle = right_angle - bno_servo_offset
+        ver_power = math.sin(math.radians(controll_angle)) * 100
+        hor_power = math.cos(math.radians(controll_angle)) * 100
+
+        legs_servo_values[legs_servo_num[0]] = int(ver_power) if ver_power > 0 else 0
+        legs_servo_values[legs_servo_num[1]] = int(hor_power) if hor_power > 0 else 0
+        legs_servo_values[legs_servo_num[2]] = int(-ver_power) if ver_power < 0 else 0
+        legs_servo_values[legs_servo_num[3]] = int(-hor_power) if hor_power < 0 else 0
+
+    print(legs_servo_values)
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
     
@@ -92,17 +107,45 @@ async def main():
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
     
+    # twistの値に基づいてbarastを割り当て
+    if -45 <= twist < 45:  # 前方向 (0度付近)
+        down_barast = batt_servo_values[0]
+        right_barast = batt_servo_values[1]
+        up_barast = batt_servo_values[2]
+        left_barast = batt_servo_values[3]
+    elif 45 <= twist < 135:  # 右方向 (90度付近)
+        left_barast = batt_servo_values[0]
+        down_barast = batt_servo_values[1]
+        right_barast = batt_servo_values[2]
+        up_barast = batt_servo_values[3]
+    elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
+        up_barast = batt_servo_values[0]
+        left_barast = batt_servo_values[1]
+        down_barast = batt_servo_values[2]
+        right_barast = batt_servo_values[3]
+    else:  # -135 <= twist < -45: 左方向 (-90度付近)
+        right_barast = batt_servo_values[0]
+        up_barast = batt_servo_values[1]
+        left_barast = batt_servo_values[2]
+        down_barast = batt_servo_values[3]
+
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        batt_servo_values[0] = target_angle_pressed if l_stick_pressed else target_angle_released
+        down_barast = target_angle_pressed if l_stick_pressed else target_angle_released
     
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        batt_servo_values[1] = target_angle_pressed if l_stick_pressed else target_angle_released
+        right_barast = target_angle_pressed if l_stick_pressed else target_angle_released
+
+    if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ2番制御
+        up_barast = target_angle_pressed if l_stick_pressed else target_angle_released
+
+    if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ3番制御
+        left_barast = target_angle_pressed if l_stick_pressed else target_angle_released
     
-    if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ2番制御
-        batt_servo_values[2] = target_angle_pressed if l_stick_pressed else target_angle_released
-    
-    if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ3番制御
-        batt_servo_values[3] = target_angle_pressed if l_stick_pressed else target_angle_released
+    # バッテリーサーボ値を実際の配列に反映
+    batt_servo_values[0] = up_barast
+    batt_servo_values[1] = down_barast
+    batt_servo_values[2] = left_barast
+    batt_servo_values[3] = right_barast
     
     # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
@@ -118,6 +161,7 @@ async def main():
     legs_servo_data.update(legs_servo_values)
     batt_servo_data.update(batt_servo_values)
     bldc_data.update(bldc_values)
+    
     
     await asyncio.gather(
         tcp.send(batt_servo_data.identifier(), batt_servo_data.pack()),  # ESP1（4個のサーボ）
@@ -140,7 +184,7 @@ async def Hreceive_Rasp():
             continue
             
         received_data = DataManager.unpack(data_type, data)
-        print(f"📥 受信 : {received_data}")
+        # print(f"📥 受信 : {received_data}")
 
 async def tcp_client():
     print("🔵 接続中...")

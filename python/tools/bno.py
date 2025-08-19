@@ -1,6 +1,8 @@
 import board
 import busio
 import adafruit_bno055
+import numpy as np
+import math
 
 
 class BNOSensor:
@@ -55,15 +57,51 @@ class BNOSensor:
         
         try:
             # オイラー角データを取得
-            euler_data = self.sensor.euler
-            
-            if euler_data is None:
+            quat = self.sensor.quaternion
+
+            if quat is None:
                 # 接続が切れている可能性
                 self.connected = False
                 raise Exception("センサーとの接続が切れています")
-            
-            return euler_data
-            
+            w, x, y, z = quat
+
+            # quaternion から直接軸ベクトルを計算
+            z_axis = np.array([
+                2*(x*z + y*w),
+                2*(y*z - x*w),
+                1 - 2*(x*x + y*y)
+            ])
+            x_axis = np.array([
+                1 - 2*(y*y + z*z),
+                2*(x*y + z*w),
+                2*(x*z - y*w)
+            ])
+
+            # θ: 倒れ角
+            zz = z_axis[2]
+            theta = 90 - math.degrees(math.acos(np.clip(zz, -1.0, 1.0)))
+
+            # φ: 倒れ方向（北基準）
+            phi = math.degrees(math.atan2(z_axis[0], z_axis[1]))
+            if phi < 0:
+                phi += 360
+
+            # twist: 特殊ベクトルとX軸ベクトルの角度
+            r = np.hypot(z_axis[0], z_axis[1])
+            vec = np.array([z_axis[0], z_axis[1], -r*r/zz if zz != 0 else 0.0])
+
+            norm_vec = np.linalg.norm(vec)
+            norm_x = np.linalg.norm(x_axis)
+            if norm_vec == 0 or norm_x == 0:
+                twist = 0.0
+            else:
+                cos_angle = np.clip(np.dot(vec, x_axis) / (norm_vec * norm_x), -1.0, 1.0)
+                twist_angle = math.degrees(math.acos(cos_angle))
+                cross_z = np.cross(x_axis, vec)[2]
+                twist = twist_angle if cross_z >= 0 else -twist_angle
+
+            return {int(theta), int(phi), int(twist)}
+
         except Exception as e:
             self.connected = False
             raise Exception(f"角度データの取得に失敗しました: {str(e)}")

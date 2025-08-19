@@ -3,7 +3,8 @@
 #### PC側
 opencv-python , simple_pid , pygame
 #### Rasp側
-bleak , opencv-python , Picamera2
+apt install python3.11-dev build-essential
+bleak , opencv-python , Picamera2 , pyyaml , adafruit-circuitpython-busdevice , adafruit-blinka
 - Picamera2は仮想環境内にインストールできないため(多分)、ラズパイ本体にインストールして、仮想環境を本体のライブラリも使える状態で立ち上げて使用中
 
 ## PC <-> RasPi
