@@ -26,9 +26,9 @@ PORT = 5000
 tcp = create_tcp(HOST, PORT)
 
 legs_servo_num = [6,7,8,11]
-# bno camera offset 45
-bno_legs_offset = 45
-bno_tank_offset = 0
+bno_camera_offset = 45
+# bno_legs_offset = 45
+# bno_tank_offset = 0
 
 
 # ESP1用サーボデータ（4個）とESP2用サーボデータ（12個）
@@ -87,7 +87,8 @@ def batt_servo_control(twist,lstick,num):
 
 async def main():
     bno = bno_data.get()
-    theta, phi, twist = bno[0], bno[1]*3, bno[2]*2
+    theta, phi, bno_twist = bno[0], bno[1]*3, bno[2]*2
+    twist = bno_twist + bno_camera_offset
     print(f"θ: {theta}° φ: {phi}° twist: {twist}°")
 
     if controller.pushed_button(Button.START):  # STARTボタン
@@ -129,7 +130,7 @@ async def main():
 
 
     if right_magnitude > 0.3:  # 右スティックが動いている場合
-        controll_angle = right_angle - bno_legs_offset - twist
+        controll_angle = right_angle - twist
         ver_power = math.sin(math.radians(controll_angle)) * 180 * right_magnitude
         hor_power = math.cos(math.radians(controll_angle)) * 180 * right_magnitude
 

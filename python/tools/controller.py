@@ -181,6 +181,7 @@ class Controller:
         magnitude = math.hypot(x, y)
         angle = math.atan2(y, x) if magnitude > 0.1 else 0.0  # デッドゾーン処理
         angle = math.degrees(angle)  # ラジアンから度に変換
+        magnitude = min(magnitude, 1.0)  # 大きさを0～1に制限
         return angle, magnitude
 
     def get_right_angle(self):
@@ -194,6 +195,7 @@ class Controller:
         magnitude = math.hypot(x, y)
         angle = math.atan2(y, x) if magnitude > 0.1 else 0.0  # デッドゾーン処理
         angle = math.degrees(angle)  # ラジアンから度に変換
+        magnitude = min(magnitude, 1.0)
         return angle, magnitude
 
     def r2_push(self) -> float:

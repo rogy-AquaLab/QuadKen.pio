@@ -80,7 +80,7 @@ class BNOSensor:
             cosy_cosp = 1.0 - 2.0 * (y * y + z * z)
             yaw = math.atan2(siny_cosp, cosy_cosp)
 
-            return (int(math.degrees(yaw)), int(math.degrees(roll)), int(math.degrees(pitch)))
+            return (int(math.degrees(yaw)), int(math.degrees(pitch)), int(math.degrees(roll)))
 
         except Exception as e:
             self.connected = False
