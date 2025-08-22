@@ -95,13 +95,13 @@ async def main():
         config.update([1]) # ESPとの接続開始
         await tcp.send(config.identifier(), config.pack())
         return
-    
-    if controller.pushed_button(Button.L1):  # L1ボタン
+
+    if controller.pushed_button(Button.L_STICK):  # Lスティックボタン
         config.update([2])  # ESPセットアップコマンド
         await tcp.send(config.identifier(), config.pack())
         return
-    
-    if controller.pushed_button(Button.R1):  # R1ボタン
+
+    if controller.pushed_button(Button.R_STICK):  # Rスティックボタン
         config.update([3])  # ESP設定3コマンド
         await tcp.send(config.identifier(), config.pack())
         return
@@ -119,10 +119,7 @@ async def main():
 
     # 脚部サーボデータの設定（12個のサーボ - ESP2用）
     legs_servo_values = legs_servo_data.get()  # デフォルト位置で初期化
-    
-    # for i in legs_servo_num:
-    #     legs_servo_values[i] = 120
-    
+        
     # 左スティックで脚部サーボを制御
     if left_magnitude > 0.5:  # スティックが動いている場合
         for i in legs_servo_num:
@@ -144,25 +141,25 @@ async def main():
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
     
     # Lスティック押し込み状態を取得
-    l_stick_pressed = controller.is_button_pressed(Button.L_STICK)
-    r_stick_pressed = controller.is_button_pressed(Button.R_STICK)
-    
+    l1_pressed = controller.is_button_pressed(Button.L1)
+    r1_pressed = controller.is_button_pressed(Button.R1)
+
     # A、B、X、Yボタンでバッテリー部サーボ（0～3番）を制御
     # Lスティック押し込み時：10度、非押し込み時：170度
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
 
     if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=0)
-    
+        batt_servo_control(twist=twist, lstick=l1_pressed, num=0)
+
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=1)
+        batt_servo_control(twist=twist, lstick=l1_pressed, num=1)
 
     if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ2番制御
-        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=2)
+        batt_servo_control(twist=twist, lstick=l1_pressed, num=2)
 
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ3番制御
-        batt_servo_control(twist=twist, lstick=l_stick_pressed, num=3)
+        batt_servo_control(twist=twist, lstick=l1_pressed, num=3)
 
 
     
