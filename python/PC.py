@@ -8,6 +8,7 @@ import math
 from tools.tcp import create_tcp
 from tools.data_manager import DataManager , DataType
 from tools.controller import Controller , Button
+from tools.calc import Calc
 
 
 # 設定ファイルの読み込み
@@ -26,7 +27,7 @@ PORT = 5000
 tcp = create_tcp(HOST, PORT)
 
 legs_servo_num = [6,7,8,11]
-bno_camera_offset = 45
+bno_camera_offset = -130
 # bno_legs_offset = 45
 # bno_tank_offset = 0
 
@@ -42,54 +43,66 @@ config = DataManager(0xFF, 1, DataType.UINT8)
 # config.yamlからmain_intervalを読み込み
 main_interval = config_data.get('main', {}).get('interval', 0.1)
 
-def batt_servo_control(twist,lstick,num):
+def batt_servo_control(twist,l1,num):
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
 
-    target_angle_pressed = 10    # Lスティック押し込み時の角度
-    target_angle_released = 170  # Lスティック離し時の角度
-    right_barast = left_barast = up_barast = down_barast = target_angle_pressed
+    target_angle_pressed = 10    # 押し込み時の角度
+    target_angle_released = 170  # 離し時の角度
 
-    if num == 0:  # Aボタンでバッテリーサーボ0番制御
-        down_barast = target_angle_pressed if lstick else target_angle_released
+    if l1:  # L1押し込み時
+        batt_servo_values[num] = target_angle_pressed
+    else:  # L1離し時
+        batt_servo_values[num] = target_angle_released
+
+    # right_barast = left_barast = up_barast = down_barast = target_angle_pressed
+
+    # if num == 0:  # Aボタンでバッテリーサーボ0番制御
+    #     down_barast = target_angle_pressed if lstick else target_angle_released
     
-    if num == 1:  # Bボタンでバッテリーサーボ1番制御
-        right_barast = target_angle_pressed if lstick else target_angle_released
+    # if num == 1:  # Bボタンでバッテリーサーボ1番制御
+    #     right_barast = target_angle_pressed if lstick else target_angle_released
 
-    if num == 2:  # Yボタンでバッテリーサーボ2番制御
-        up_barast = target_angle_pressed if lstick else target_angle_released
+    # if num == 2:  # Yボタンでバッテリーサーボ2番制御
+    #     up_barast = target_angle_pressed if lstick else target_angle_released
 
-    if num == 3:  # Xボタンでバッテリーサーボ3番制御
-        left_barast = target_angle_pressed if lstick else target_angle_released
+    # if num == 3:  # Xボタンでバッテリーサーボ3番制御
+    #     left_barast = target_angle_pressed if lstick else target_angle_released
 
-    # twistの値に基づいてbarastを割り当て
-    if -45 <= twist < 45:  # 前方向 (0度付近)
-        batt_servo_values[0] = down_barast
-        batt_servo_values[1] = right_barast
-        batt_servo_values[2] = up_barast
-        batt_servo_values[3] = left_barast
-    elif 45 <= twist < 135:  # 右方向 (90度付近)
-        batt_servo_values[0] = left_barast
-        batt_servo_values[1] = down_barast
-        batt_servo_values[2] = right_barast
-        batt_servo_values[3] = up_barast
-    elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
-        batt_servo_values[0] = up_barast
-        batt_servo_values[1] = left_barast
-        batt_servo_values[2] = down_barast
-        batt_servo_values[3] = right_barast
-    else:  # -135 <= twist < -45: 左方向 (-90度付近)
-        batt_servo_values[0] = right_barast
-        batt_servo_values[1] = up_barast
-        batt_servo_values[2] = left_barast
-        batt_servo_values[3] = down_barast
+    # # twistの値に基づいてbarastを割り当て
+    # if -45 <= twist < 45:  # 前方向 (0度付近)
+    #     batt_servo_values[0] = down_barast
+    #     batt_servo_values[1] = right_barast
+    #     batt_servo_values[2] = up_barast
+    #     batt_servo_values[3] = left_barast
+    # elif 45 <= twist < 135:  # 右方向 (90度付近)
+    #     batt_servo_values[0] = left_barast
+    #     batt_servo_values[1] = down_barast
+    #     batt_servo_values[2] = right_barast
+    #     batt_servo_values[3] = up_barast
+    # elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
+    #     batt_servo_values[0] = up_barast
+    #     batt_servo_values[1] = left_barast
+    #     batt_servo_values[2] = down_barast
+    #     batt_servo_values[3] = right_barast
+    # else:  # -135 <= twist < -45: 左方向 (-90度付近)
+    #     batt_servo_values[0] = right_barast
+    #     batt_servo_values[1] = up_barast
+    #     batt_servo_values[2] = left_barast
+    #     batt_servo_values[3] = down_barast
 
     batt_servo_data.update(batt_servo_values)
 
 async def main():
     bno = bno_data.get()
     theta, phi, bno_twist = bno[0], bno[1]*3, bno[2]*2
-    twist = bno_twist + bno_camera_offset
+    twist = bno_twist - bno_camera_offset
+    twist = twist if twist <= 180 else twist - 360  # ヘディングを-180〜180に変換
+    twist = -twist
     print(f"θ: {theta}° φ: {phi}° twist: {twist}°")
+
+    # L1,R1押し込み状態を取得
+    l1_pressed = controller.is_button_pressed(Button.L1)
+    r1_pressed = controller.is_button_pressed(Button.R1)
 
     if controller.pushed_button(Button.START):  # STARTボタン
         config.update([1]) # ESPとの接続開始
@@ -126,40 +139,38 @@ async def main():
             legs_servo_values[i] = max(0, min(180, int(90 + left_angle * 0.5)))  # 角度に基づくサーボ制御
 
 
-    if right_magnitude > 0.3:  # 右スティックが動いている場合
-        controll_angle = right_angle - twist
-        ver_power = math.sin(math.radians(controll_angle)) * 180 * right_magnitude
-        hor_power = math.cos(math.radians(controll_angle)) * 180 * right_magnitude
+    if right_magnitude > 0.2:  # 右スティックが動いている場合
+        # controller_angle = right_angle - twist
+        # ver_power = math.sin(math.radians(controller_angle)) * 180 * right_magnitude
+        # hor_power = math.cos(math.radians(controller_angle)) * 180 * right_magnitude
 
-        legs_servo_values[legs_servo_num[0]] = int(ver_power) if ver_power > 0 else 0
-        legs_servo_values[legs_servo_num[3]] = int(hor_power) if hor_power > 0 else 0
-        legs_servo_values[legs_servo_num[2]] = int(-ver_power) if ver_power < 0 else 0
-        legs_servo_values[legs_servo_num[1]] = int(-hor_power) if hor_power < 0 else 0
+        up_value, down_value, left_value, right_value = Calc.legs_power(twist, right_angle, right_magnitude, l1_pressed)
 
-    print(legs_servo_values)
+        legs_servo_values[legs_servo_num[0]] = up_value
+        legs_servo_values[legs_servo_num[3]] = right_value
+        legs_servo_values[legs_servo_num[2]] = down_value
+        legs_servo_values[legs_servo_num[1]] = left_value
+
+
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
     
-    # Lスティック押し込み状態を取得
-    l1_pressed = controller.is_button_pressed(Button.L1)
-    r1_pressed = controller.is_button_pressed(Button.R1)
-
     # A、B、X、Yボタンでバッテリー部サーボ（0～3番）を制御
     # Lスティック押し込み時：10度、非押し込み時：170度
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
 
-    if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ0番制御
-        batt_servo_control(twist=twist, lstick=l1_pressed, num=0)
+    if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ0番制御
+        batt_servo_control(twist=twist, l1=l1_pressed, num=0)
 
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        batt_servo_control(twist=twist, lstick=l1_pressed, num=1)
+        batt_servo_control(twist=twist, l1=l1_pressed, num=1)
 
-    if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ2番制御
-        batt_servo_control(twist=twist, lstick=l1_pressed, num=2)
+    if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ2番制御
+        batt_servo_control(twist=twist, l1=l1_pressed, num=2)
 
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ3番制御
-        batt_servo_control(twist=twist, lstick=l1_pressed, num=3)
+        batt_servo_control(twist=twist, l1=l1_pressed, num=3)
 
 
     
@@ -167,12 +178,16 @@ async def main():
     r2_value = controller.r2_push()  # 0.0～1.0の値を取得（前進）
     l2_value = controller.l2_push()  # 0.0～1.0の値を取得（後進）
     
-    # 前進と後進の制御を統合（-127～127の範囲）
-    bldc_speed = int(r2_value * 127) - int(l2_value * 128)
-    # 範囲を-128～127に制限
-    bldc_speed = max(-128, min(127, bldc_speed))
+    # BLDCの進行方向の指定
+    if r1_pressed:
+        bldc_speed = int(r2_value * 127)
+    else:
+        bldc_speed = int(-r2_value * 127)
+
     bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
     
+    print(f"{legs_servo_values}")
+
     # データを更新
     legs_servo_data.update(legs_servo_values)
     # batt_servo_data.update(batt_servo_values)

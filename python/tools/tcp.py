@@ -160,9 +160,9 @@ class DebugTcp:
             
             # 簡単なデータプレビュー
             if len(data) > 0:
-                preview = ' '.join(f'{b:02X}' for b in data[:min(8, len(data))])
-                if len(data) > 8:
-                    preview += f" ... (残り{len(data) - 8}バイト)"
+                preview = ' '.join(f'{b:02X}' for b in data[:min(12, len(data))])
+                if len(data) > 12:
+                    preview += f" ... (残り{len(data) - 12}バイト)"
                 info += f", データ: {preview}"
             
             self._print_debug("TCP送信", info)
@@ -176,8 +176,8 @@ class DebugTcp:
             raise ConnectionError("TCP接続が確立されていません。")
         
         self._print_debug("データ受信待機中", "")
-        await asyncio.sleep(30)
-        return 0xFF, 1, b'A'  # 疑似データを返す
+        await asyncio.sleep(5)
+        return 0x03, 3, b'\x00\x00\xbf'  # 疑似データを返す
     
     def _print_debug(self, action: str, info: str):
         """デバッグメッセージを出力"""
