@@ -100,6 +100,9 @@ async def main():
     twist = -twist
     print(f"θ: {theta}° φ: {phi}° twist: {twist}°")
 
+    # コントローラーの状態を更新
+    controller.update()
+
     # L1,R1押し込み状態を取得
     l1_pressed = controller.is_button_pressed(Button.L1)
     r1_pressed = controller.is_button_pressed(Button.R1)
@@ -108,6 +111,8 @@ async def main():
         config.update([1]) # ESPとの接続開始
         await tcp.send(config.identifier(), config.pack())
         return
+
+
 
     if controller.pushed_button(Button.L_STICK):  # Lスティックボタン
         config.update([2])  # ESPセットアップコマンド
@@ -119,12 +124,12 @@ async def main():
         await tcp.send(config.identifier(), config.pack())
         return
     if controller.pushed_button(Button.SELECT):  # SELECTボタン
+        batt_servo_data.update([5,5,5,5])
+        await tcp.send(batt_servo_data.identifier(), batt_servo_data.pack()),  # ESP1（4個のサーボ）
         raise EOFError("ユーザーがSelectボタンで終了")  # 明示的に終了を伝える
 
 
 
-    # コントローラーの状態を更新
-    controller.update()
     
     # スティックの値を取得
     left_angle, left_magnitude = controller.get_left_angle()

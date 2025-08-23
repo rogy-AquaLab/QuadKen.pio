@@ -1,5 +1,5 @@
 tcp:
-  debug_mode: off  # on または off
+  debug_mode: on  # on または off
   debug_options:
     show_timestamp: true
     show_colors: true
