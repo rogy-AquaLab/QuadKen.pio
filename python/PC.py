@@ -10,6 +10,9 @@ from tools.data_manager import DataManager , DataType
 from tools.controller import Controller , Button
 from tools.calc import Calc
 
+# ps aux | grep python
+
+
 
 # 設定ファイルの読み込み
 with open('config.yaml', 'r', encoding='utf-8') as f:
@@ -40,19 +43,24 @@ bldc_data = DataManager(0x02, 2, DataType.INT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
 
+Calc.init(batt_servo_data=batt_servo_data)
+
 # config.yamlからmain_intervalを読み込み
 main_interval = config_data.get('main', {}).get('interval', 0.1)
 
-def batt_servo_control(twist,l1,num):
+def batt_servo_control(twist,num,l1):
     batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
 
-    target_angle_pressed = 10    # 押し込み時の角度
-    target_angle_released = 170  # 離し時の角度
+    target_angle_pressed = 5    # 押し込み時の角度
+    target_angle_released = 175  # 離し時の角度
 
     if l1:  # L1押し込み時
         batt_servo_values[num] = target_angle_pressed
     else:  # L1離し時
         batt_servo_values[num] = target_angle_released
+
+    
+
 
     # right_barast = left_barast = up_barast = down_barast = target_angle_pressed
 
@@ -106,6 +114,8 @@ async def main():
     # L1,R1押し込み状態を取得
     l1_pressed = controller.is_button_pressed(Button.L1)
     r1_pressed = controller.is_button_pressed(Button.R1)
+    b_pressed = controller.is_button_pressed(Button.B)
+    x_pressed = controller.is_button_pressed(Button.X)
 
     if controller.pushed_button(Button.START):  # STARTボタン
         config.update([1]) # ESPとの接続開始
@@ -165,18 +175,29 @@ async def main():
     target_angle_pressed = 10    # Lスティック押し込み時の角度
     target_angle_released = 170  # Lスティック離し時の角度
 
-    if controller.pushed_button(Button.Y):  # Yボタンでバッテリーサーボ0番制御
-        batt_servo_control(twist=twist, l1=l1_pressed, num=0)
+    # if controller.pushed_button(Button.A):  # Yボタンでバッテリーサーボ0番制御
+    #     batt_servo_control(twist, l1_pressed, 0)
+
+    # if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
+    #     batt_servo_control(twist, l1_pressed, 1)
+
+    # if controller.pushed_button(Button.Y):  # Aボタンでバッテリーサーボ2番制御
+    #     batt_servo_control(twist, l1_pressed, 2)
+
+    # if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ3番制御
+    #     batt_servo_control(twist, l1_pressed, 3)
+
+    if controller.pushed_button(Button.A):  # Yボタンでバッテリーサーボ0番制御
+        Calc.barast_power(twist, 0, l1_pressed)
 
     if controller.pushed_button(Button.B):  # Bボタンでバッテリーサーボ1番制御
-        batt_servo_control(twist=twist, l1=l1_pressed, num=1)
+        Calc.barast_power(twist, 1, l1_pressed)
 
-    if controller.pushed_button(Button.A):  # Aボタンでバッテリーサーボ2番制御
-        batt_servo_control(twist=twist, l1=l1_pressed, num=2)
+    if controller.pushed_button(Button.Y):  # Aボタンでバッテリーサーボ2番制御
+        Calc.barast_power(twist, 2, l1_pressed)
 
     if controller.pushed_button(Button.X):  # Xボタンでバッテリーサーボ3番制御
-        batt_servo_control(twist=twist, l1=l1_pressed, num=3)
-
+        Calc.barast_power(twist, 3, l1_pressed)
 
     
     # R2/L2ボタンの押し込み量でBLDCモーターを制御（-127～127の範囲）
@@ -190,7 +211,13 @@ async def main():
         bldc_speed = int(-r2_value * 127)
 
     bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
-    
+
+    if b_pressed:
+        bldc_values = [bldc_speed, -bldc_speed]
+    elif x_pressed:
+        bldc_values = [-bldc_speed, bldc_speed]
+
+
     print(f"{legs_servo_values}")
 
     # データを更新

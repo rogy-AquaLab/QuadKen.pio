@@ -1,7 +1,16 @@
 import math
+from tools.data_manager import DataManager
 
 class Calc:
     fixed_twist = 0
+    batt_servo_data = None
+
+    @staticmethod
+    def init(batt_servo_data : DataManager):
+        Calc.batt_servo_data = batt_servo_data
+        return
+
+
     @staticmethod
     def legs_power(twist, controller_angle, controller_magnitude, fix_mode):
         if fix_mode==0:
@@ -35,52 +44,55 @@ class Calc:
         return up_value, down_value, left_value, right_value
     
     @staticmethod
-    def barast_power(twist, button_num, default_mode):
-        pass
-        # if (default_mode):
+    def barast_power(twist, button_num, individual_mode):
+        air_angle = 5    # 押し込み時の角度
+        water_angle = 175  # 離し時の角度
+        batt_servo_values = [air_angle] * 4  # デフォルト位置で初期化
 
-    #         batt_servo_values = batt_servo_data.get()  # デフォルト位置で初期化
 
-    # target_angle_pressed = 10    # 押し込み時の角度
-    # target_angle_released = 170  # 離し時の角度
+        if individual_mode:  # L1押し込み時
+            batt_servo_values[button_num] = water_angle
+            Calc.batt_servo_data.update(batt_servo_values)
+            return
 
-    # if l1:  # L1押し込み時
-    #     batt_servo_values[num] = target_angle_pressed
-    # else:  # L1離し時
-    #     batt_servo_values[num] = target_angle_released
+            
+        rd_barast = ld_barast = ru_barast = lu_barast = air_angle
 
-    # right_barast = left_barast = up_barast = down_barast = target_angle_pressed
+        if button_num == 0:  # Aボタンでバッテリーサーボ0番制御
+            rd_barast = ld_barast = water_angle
+            ru_barast = lu_barast = air_angle
+        
+        if button_num == 1:  # Bボタンでバッテリーサーボ1番制御
+            rd_barast = ru_barast = water_angle
+            ld_barast = lu_barast = air_angle
 
-    # if num == 0:  # Aボタンでバッテリーサーボ0番制御
-    #     down_barast = target_angle_pressed if lstick else target_angle_released
-    
-    # if num == 1:  # Bボタンでバッテリーサーボ1番制御
-    #     right_barast = target_angle_pressed if lstick else target_angle_released
+        if button_num == 2:  # Yボタンでバッテリーサーボ2番制御
+            rd_barast = ld_barast = ru_barast = lu_barast = air_angle
 
-    # if num == 2:  # Yボタンでバッテリーサーボ2番制御
-    #     up_barast = target_angle_pressed if lstick else target_angle_released
+        if button_num == 3:  # Xボタンでバッテリーサーボ3番制御
+            rd_barast = ru_barast = air_angle
+            ld_barast = lu_barast = water_angle
 
-    # if num == 3:  # Xボタンでバッテリーサーボ3番制御
-    #     left_barast = target_angle_pressed if lstick else target_angle_released
+        # twistの値に基づいてdarastを割り当て
+        if -45 <= twist < 45:  # 前方向 (0度付近)
+            batt_servo_values[0] = lu_barast
+            batt_servo_values[1] = ld_barast # rd ld
+            batt_servo_values[2] = rd_barast # rd ld
+            batt_servo_values[3] = ru_barast
+        elif 45 <= twist < 135:  # 右方向 (90度付近)
+            batt_servo_values[0] = ld_barast
+            batt_servo_values[1] = rd_barast
+            batt_servo_values[2] = ru_barast
+            batt_servo_values[3] = lu_barast
+        elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
+            batt_servo_values[0] = rd_barast
+            batt_servo_values[1] = ru_barast
+            batt_servo_values[2] = lu_barast
+            batt_servo_values[3] = ld_barast
+        else:  # -135 <= twist < -45: 左方向 (-90度付近)
+            batt_servo_values[0] = ru_barast
+            batt_servo_values[1] = lu_barast
+            batt_servo_values[2] = ld_barast
+            batt_servo_values[3] = rd_barast
 
-    # # twistの値に基づいてbarastを割り当て
-    # if -45 <= twist < 45:  # 前方向 (0度付近)
-    #     batt_servo_values[0] = down_barast
-    #     batt_servo_values[1] = right_barast
-    #     batt_servo_values[2] = up_barast
-    #     batt_servo_values[3] = left_barast
-    # elif 45 <= twist < 135:  # 右方向 (90度付近)
-    #     batt_servo_values[0] = left_barast
-    #     batt_servo_values[1] = down_barast
-    #     batt_servo_values[2] = right_barast
-    #     batt_servo_values[3] = up_barast
-    # elif 135 <= twist <= 180 or -180 <= twist < -135:  # 後方向 (180度付近)
-    #     batt_servo_values[0] = up_barast
-    #     batt_servo_values[1] = left_barast
-    #     batt_servo_values[2] = down_barast
-    #     batt_servo_values[3] = right_barast
-    # else:  # -135 <= twist < -45: 左方向 (-90度付近)
-    #     batt_servo_values[0] = right_barast
-    #     batt_servo_values[1] = up_barast
-    #     batt_servo_values[2] = left_barast
-    #     batt_servo_values[3] = down_barast
+        Calc.batt_servo_data.update(batt_servo_values)
