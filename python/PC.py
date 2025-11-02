@@ -150,6 +150,12 @@ async def main():
         legs_servo_values[legs_servo_num[3]] = right_value
         legs_servo_values[legs_servo_num[2]] = down_value
         legs_servo_values[legs_servo_num[1]] = left_value
+    else:
+        legs_servo_values[legs_servo_num[0]] = 0
+        legs_servo_values[legs_servo_num[3]] = 0
+        legs_servo_values[legs_servo_num[2]] = 0
+        legs_servo_values[legs_servo_num[1]] = 0
+
 
 
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
@@ -184,7 +190,7 @@ async def main():
     else:
         bldc_speed = int(-r2_value * 127)
 
-    bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
+    bldc_values = [int(bldc_speed*0.4), int(bldc_speed*0.4)]  # 2つのBLDCモーター用
     
     print(f"{legs_servo_values}")
 
