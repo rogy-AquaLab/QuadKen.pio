@@ -15,6 +15,8 @@ esp_task = None
 devices = [
     {"num": 1, "address": "78:42:1C:2E:0E:5E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789001"},
     {"num": 2, "address": "78:42:1C:2E:1B:76" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"},
+    {"num": 3, "address": "B0:81:84:04:A4:D6" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789003"},  # LiPo用esp32c3
+
     # {"num": 2, "address": "08:D1:F9:36:FF:3E" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #正方形
     # {"num": 2, "address": "CC:7B:5C:E8:E3:32" , "char_uuid": "abcd1234-5678-90ab-cdef-123456789002"}, #角なし
 ]
@@ -27,12 +29,14 @@ tcp = Tcp(HOST, PORT)
 
 bno = BNOSensor()  # BNO055センサのインスタンス作成
 
+
 # データ管理インスタンスの作成
 esp1_servo_data = DataManager(0x11, 4, DataType.UINT8)   # ESP1用サーボ（4個）- 識別子0x11
 esp2_servo_data = DataManager(0x12, 12, DataType.UINT8)  # ESP2用サーボ（12個）- 識別子0x12
 bldc_data = DataManager(0x02, 2, DataType.INT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
+lipo_data = DataManager(0x04, 3, DataType.UINT8)  # ESP3が送信する3セル電圧用
 
 async def shutdown():
     print("🧹 シャットダウン処理中...")
@@ -99,14 +103,25 @@ async def main():
 
 
 # 通知を受け取ったときのコールバック
-def Hreceive_ESP(device_num , identifier, data):
-    print("おかしい")
-    # # データを更新
-    # received_data = DataManager.unpack(identifier, data)
-    # print(f"📨 受信 from ESP-{device_num}: {received_data}")
+def Hreceive_ESP(device_num, identifier, data):
+    try:
+        received_data = DataManager.unpack(identifier, data)
+        print(f"📨 受信 from ESP-{device_num} (ID={identifier}): {received_data}")
 
-    # # PCにデータを送信
-    # asyncio.create_task(tcp.send(identifier, data))
+        # LiPo電圧データ（ESP3用）
+        if device_num == 3 and identifier == lipo_data.identifier():
+            voltage_values = [v/10 for v in received_data]
+            print(f"🔋 LiPo Voltages: {voltage_values}")
+            # 必要ならTCP経由でPCアプリにも送る
+            asyncio.create_task(tcp.send(identifier, data))
+
+        # 既存ESP用処理は従来通り
+        else:
+            asyncio.create_task(tcp.send(identifier, data))
+
+    except Exception as e:
+        print(f"⚠️ BLE受信エラー from ESP-{device_num}: {e}")
+
 
 async def Hto_ESP():
     # ESP32との接続

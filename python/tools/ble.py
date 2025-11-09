@@ -30,12 +30,15 @@ class Ble:
             return
         try:
             client = BleakClient(self.address)
-            connection = await client.connect()
+            await asyncio.wait_for(client.connect(),timeout=5.0)
+            connection = client.is_connected
             if not connection:
                 raise ConnectionError(f"ESP32-{self.num} ({self.address}) への接続に失敗しました。")
             
             self.client = client
             await client.start_notify(self.char_uuid, self._receive(receive_func))
+        except asyncio.TimeoutError:
+            print(f"⏱️ ESP32-{self.num} ({self.address}) 接続タイムアウト")
         except Exception as e:
             raise Exception(f"ESP32-{self.num} ({self.address}) - {e}") 
         

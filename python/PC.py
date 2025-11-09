@@ -39,6 +39,7 @@ legs_servo_data = DataManager(0x12, 12, DataType.UINT8)  # ESP2用サーボ（12
 bldc_data = DataManager(0x02, 2, DataType.INT8)
 bno_data = DataManager(0x03, 3, DataType.INT8)
 config = DataManager(0xFF, 1, DataType.UINT8)
+lipo_data = DataManager(0x04, 3, DataType.UINT8)  # ESP3が送信する3セル電圧用
 
 # config.yamlからmain_intervalを読み込み
 main_interval = config_data.get('main', {}).get('interval', 0.1)
@@ -213,7 +214,6 @@ async def Hreceive_Rasp():
                 cv2.imshow('Async TCP Stream', frame)
                 cv2.waitKey(1)
             continue
-            
         received_data = DataManager.unpack(data_type, data)
         # print(f"📥 受信 : {received_data}")
 
