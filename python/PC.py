@@ -27,7 +27,7 @@ PORT = 5000
 tcp = create_tcp(HOST, PORT)
 
 legs_servo_num = [6,7,8,11]
-bno_camera_offset = -130
+bno_camera_offset = 0
 # bno_legs_offset = 45
 # bno_tank_offset = 0
 
@@ -144,7 +144,7 @@ async def main():
         # controller_angle = right_angle - twist
         # ver_power = math.sin(math.radians(controller_angle)) * 180 * right_magnitude
         # hor_power = math.cos(math.radians(controller_angle)) * 180 * right_magnitude
-
+        print(twist,right_angle)
         up_value, down_value, left_value, right_value = Calc.legs_power(twist, right_angle, right_magnitude, l1_pressed)
 
         legs_servo_values[legs_servo_num[0]] = up_value
@@ -187,7 +187,7 @@ async def main():
 
     bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
     
-    print(f"{legs_servo_values}")
+    # print(f"{legs_servo_values}")
 
     # データを更新
     legs_servo_data.update(legs_servo_values)

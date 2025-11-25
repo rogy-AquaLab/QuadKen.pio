@@ -100,7 +100,7 @@ class DataManager:
         :raises ValueError: 指定された識別子のインスタンスが存在しない場合
         """
         instance = cls._search(identifier)
-        print(identifier,instance._pack_mode)
+        #print(identifier,instance._pack_mode)
         instance._data = list(struct.unpack(instance._pack_mode, data))
         return instance._data
 

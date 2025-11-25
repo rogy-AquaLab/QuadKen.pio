@@ -6,17 +6,17 @@ class Calc:
     def legs_power(twist, controller_angle, controller_magnitude, fix_mode):
         if fix_mode:
             twist = Calc.fixed_twist
-        twist = Calc.fixed_twist
 
         # ここに脚部のパワー計算ロジックを実装
         controller_angle1 = controller_angle - twist - 45
         ver_power1 = math.sin(math.radians(controller_angle1)) * 180 * controller_magnitude
         hor_power1 = math.cos(math.radians(controller_angle1)) * 180 * controller_magnitude
-
+        
         controller_angle2 = controller_angle - twist + 45
         ver_power2 = math.sin(math.radians(controller_angle2)) * 180 * controller_magnitude
         hor_power2 = math.cos(math.radians(controller_angle2)) * 180 * controller_magnitude
 
+        print(twist,controller_angle - 45,controller_angle1)
         up_value = int(ver_power1) if ver_power1 > 0 else 0
         down_value = int(-ver_power1) if ver_power1 < 0 else 0
         left_value = int(-hor_power1) if hor_power1 < 0 else 0
