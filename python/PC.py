@@ -154,17 +154,22 @@ async def main():
             legs_servo_values[i] = max(0, min(180, int(90 + left_angle * 0.5)))  # 角度に基づくサーボ制御
 
 
-    if right_magnitude > 0.2:  # 右スティックが動いている場合
+    if left_magnitude > 0.2:  # 右スティックが動いている場合
         # controller_angle = right_angle - twist
         # ver_power = math.sin(math.radians(controller_angle)) * 180 * right_magnitude
         # hor_power = math.cos(math.radians(controller_angle)) * 180 * right_magnitude
 
-        up_value, down_value, left_value, right_value = Calc.legs_power(twist, right_angle, right_magnitude, l1_pressed)
+        up_value, down_value, left_value, right_value = Calc.legs_power(twist, left_angle, left_magnitude, l1_pressed)
 
         legs_servo_values[legs_servo_num[0]] = up_value
         legs_servo_values[legs_servo_num[3]] = right_value
         legs_servo_values[legs_servo_num[2]] = down_value
         legs_servo_values[legs_servo_num[1]] = left_value
+    else:
+        legs_servo_values[legs_servo_num[0]] = 0  # 右スティックが動いていない場合はデフォルト位置に戻す
+        legs_servo_values[legs_servo_num[3]] = 0  # 右スティックが動いていない場合はデフォルト位置に戻す
+        legs_servo_values[legs_servo_num[2]] = 0  # 右スティックが動いていない場合はデフォルト位置に戻す
+        legs_servo_values[legs_servo_num[1]] = 0  # 右スティックが動いていない場合はデフォルト位置に戻す
 
 
     # バッテリー部サーボデータの設定（4個のサーボ - ESP1用）
@@ -210,12 +215,12 @@ async def main():
     else:
         bldc_speed = int(-r2_value * 127)
 
-    bldc_values = [bldc_speed, bldc_speed]  # 2つのBLDCモーター用
+    bldc_values = [int(bldc_speed*0.6), int(bldc_speed*0.6)]  # 2つのBLDCモーター用
 
-    if b_pressed:
-        bldc_values = [bldc_speed, -bldc_speed]
-    elif x_pressed:
-        bldc_values = [-bldc_speed, bldc_speed]
+    # if b_pressed:
+    #     bldc_values = [int(bldc_speed*0.5), -bldc_speed]
+    # elif x_pressed:
+    #     bldc_values = [-bldc_speed, bldc_speed]
 
 
     print(f"{legs_servo_values}")
